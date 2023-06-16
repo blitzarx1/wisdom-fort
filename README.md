@@ -1,6 +1,6 @@
-# wisdom-fort
+# Wisdom-Fort
 
-This project implements a TCP server that provides a quote from the "Word of Wisdom" book after a client successfully solves a Proof of Work (PoW) challenge. The server is designed to be resistant to DDoS attacks by requiring a PoW solution before serving a quote.
+Wisdom-Fort is a TCP server that utilizes Proof of Work (PoW) challenges as a shield against DDoS attacks. It serves insightful quotes to clients, but only after they have successfully solved a PoW challenge. This project is designed to balance server-side protection mechanisms with a rewarding client-side experience
 
 ## Design Overview
 
@@ -8,19 +8,19 @@ The system was designed with an emphasis on simplicity, security, and resilience
 
 The design also includes a unique token assigned to each client upon their first successful PoW solution. This token helps track and limit the number of requests from each client, thus providing additional protection against DDoS attacks.
 
-## Choice of Hash Function
+## Choice of Proof of Work Algorithm
 
-The SHA-256 cryptographic hash function is chosen for the PoW system. This choice was based on several factors:
+The Proof of Work (PoW) algorithm chosen for Wisdom-Fort is a Hash-based PoW. This selection was driven by several key considerations:
 
-- **Security:** SHA-256 is currently considered to be very secure. It produces a 256-bit (32-byte) hash, which provides a large enough output size to be resistant to collisions (two different inputs producing the same output).
+- **Security:** The algorithm's challenge-response mechanism and the requirement for clients to produce a hash with specific properties helps guard against a range of attacks, including DDoS and replay attacks.
 
-- **Performance:** SHA-256 strikes a good balance between security and performance. It's not the fastest hash function, but it's fast enough for many applications, and its security is well-regarded.
+- **Simplicity:** Despite its robust security features, the algorithm is straightforward to implement and understand. This makes it accessible to a wide range of developers and users.
 
-- **Availability and Use:** SHA-256 is widely available and used. It's included in the standard libraries of most programming languages, including Go, which is used in this project.
+- **Scalability:** The difficulty level of the PoW challenge can be dynamically adjusted. This allows the server to respond to changes in demand and manage its resources effectively.
 
-- **Standardization:** SHA-256 is standardized by the National Institute of Standards and Technology (NIST) in the United States, which means it has undergone extensive scrutiny and testing.
+- **Fairness:** Every client is given a unique challenge, ensuring that the PoW system is fair. No client has an advantage over another, which promotes equal opportunity for all users to receive wisdom quotes.
 
-- **Use in PoW Systems:** SHA-256 is used in the PoW system of Bitcoin, the most well-known application of PoW. This demonstrates its effectiveness in this kind of application.
+- **Proven Effectiveness:** Hash-based PoW systems have been successfully used in a number of high-profile applications, such as in blockchain technology and cryptocurrency networks. This serves as a testament to their effectiveness in protecting systems against potential abuse.
 
 ## Getting Started
 
@@ -48,7 +48,7 @@ By default, the client will try to connect to a server running on `localhost:808
 
 ## Quotes
 
-Once the PoW solution is verified and the client's request rate is checked, the server responds with a random wisdom.
+Once the PoW solution is verified and the client's request rate is checked, the server responds with a random wisdom quote.
 
 ## Testing
 
