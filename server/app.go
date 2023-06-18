@@ -69,8 +69,6 @@ func (a *App) handleConnection(conn net.Conn) {
 		return
 	}
 
-	a.logger.Println("handling request: ", req)
-
 	ip := conn.RemoteAddr().String()
 	token := a.token(ip, &req)
 
@@ -84,11 +82,10 @@ func (a *App) handleConnection(conn net.Conn) {
 	default:
 		handleErr = service.NewError(service.ErrInvalidAction, fmt.Errorf("unknown action: %s", req.Action))
 	}
-	if err != nil {
+	if handleErr != nil {
 		a.handleError(conn, &token, handleErr)
+		return
 	}
-
-	a.logger.Println("got response payload: ", string(respPayload))
 
 	a.write(conn, a.successResponse(token, respPayload))
 }

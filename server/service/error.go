@@ -10,6 +10,8 @@ const (
 	ErrInvalidPayloadFormat
 	ErrInvalidAction
 	ErrChallengeAlreadyProvided
+	ErrInvalidSolution
+	ErrNoActiveChallenge
 )
 
 var codeStr = []string{
@@ -18,6 +20,8 @@ var codeStr = []string{
 	ErrInvalidPayloadFormat:     "ErrInvalidPayloadFormat",
 	ErrInvalidAction:            "ErrInvalidAction",
 	ErrChallengeAlreadyProvided: "ErrChallengeAlreadyProvided",
+	ErrInvalidSolution:          "ErrInvalidSolution",
+	ErrNoActiveChallenge:        "ErrNoActiveChallenge",
 }
 
 var msg = map[ErrorCode]string{
@@ -26,6 +30,8 @@ var msg = map[ErrorCode]string{
 	ErrInvalidPayloadFormat:     "invalid payload format",
 	ErrInvalidAction:            "invalid action",
 	ErrChallengeAlreadyProvided: "challenge has been already provided",
+	ErrInvalidSolution:          "solution is invalid",
+	ErrNoActiveChallenge:        "no active challenge for token",
 }
 
 func (ec ErrorCode) String() string {

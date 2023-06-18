@@ -3,6 +3,7 @@ package quotes
 import (
 	"encoding/json"
 	"log"
+	"math/rand"
 	"os"
 )
 
@@ -29,4 +30,8 @@ func New(logger *log.Logger, quotesFilePath string) (*Service, error) {
 	logger.Printf("read %d quotes\n", len(s.quotes))
 
 	return s, nil
+}
+
+func (s *Service) GetRandom() Quote {
+	return s.quotes[rand.Intn(len(s.quotes))]
 }
