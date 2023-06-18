@@ -37,9 +37,11 @@ func New(l *log.Logger, s *storage.Service) *Service {
 	}
 }
 
-func (s *Service) IncAndGet(ip string) uint {
+func (s *Service) Inc(ip string) {
 	s.storage.Increment(s.storageID, ip)
+}
 
+func (s *Service) Get(ip string) uint {
 	rps, err := s.storage.Get(s.storageID, ip)
 	if err != nil {
 		return 0

@@ -61,8 +61,11 @@ go test ./...
 ## TODO
 
 Server:
-- [ ] Tests
+- [ ] Limit number of tokens per ip, to prevent exploting the system by not providing token to challenge request and getting new token => lowest difficulty
+- [ ] Implement ttl for challenges. Clear them after some time. And incr token limit per ip.
 - [ ] Graceful shutdown with ctx
+- [ ] Refactor logging maybe with ctx like tracing
+- [ ] Tests
 
 Client:
 - [ ] Extract client from main

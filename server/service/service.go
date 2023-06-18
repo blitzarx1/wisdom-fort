@@ -9,8 +9,10 @@ import (
 	"blitzarx1/wisdom-fort/server/logger"
 	"blitzarx1/wisdom-fort/server/service/challenges"
 	"blitzarx1/wisdom-fort/server/service/quotes"
+	"blitzarx1/wisdom-fort/server/service/rps"
 	"blitzarx1/wisdom-fort/server/service/storage"
 	"blitzarx1/wisdom-fort/server/token"
+	wfErrors "blitzarx1/wisdom-fort/server/errors"
 )
 
 const (
@@ -24,10 +26,11 @@ type Service struct {
 	logger *log.Logger
 
 	quotesService     *quotes.Service
+	rpsService        *rps.Service
 	challengesService *challenges.Service
 }
 
-func New(l *log.Logger) (*Service, error) {
+func New(l *log.Logger, rpsService *rps.Service, storageService *storage.Service) (*Service, error) {
 	l.Println("initializing service")
 
 	quotesService, err := quotes.New(logger.NewLogger(l, "quotes"), quotesFilePath)
@@ -35,14 +38,13 @@ func New(l *log.Logger) (*Service, error) {
 		return nil, err
 	}
 
-	storageService := storage.New(logger.NewLogger(l, "storage"))
-
-	challengesService := challenges.New(logger.NewLogger(l, "challenges"), storageService)
+	challengesService := challenges.New(logger.NewLogger(l, "challenges"), storageService, rpsService)
 	return &Service{
 		logger: l,
 
 		quotesService:     quotesService,
 		challengesService: challengesService,
+		rpsService:        rpsService,
 	}, nil
 }
 
@@ -50,7 +52,8 @@ func (s *Service) GenerateToken(ip string) token.Token {
 	return token.New(ip)
 }
 
-func (s *Service) GenerateChallenge(t token.Token) ([]byte, *Error) {
+// GenerateChallenge generates a challenge for the given token.
+func (s *Service) GenerateChallenge(t token.Token) ([]byte, *wfErrors.Error) {
 	reqLogger := logger.NewLogger(s.logger, string(t))
 	reqLogger.Println("handling challenge request")
 
@@ -64,40 +67,41 @@ func (s *Service) GenerateChallenge(t token.Token) ([]byte, *Error) {
 	payload := payloadChallenge{Target: diff}
 	data, err := json.Marshal(payload)
 	if err != nil {
-		return nil, NewError(ErrGeneric, err)
+		return nil, wfErrors.NewError(wfErrors.ErrGeneric, err)
 	}
 
 	return data, nil
 }
 
-func (s *Service) CheckSolution(t token.Token, payload []byte) ([]byte, *Error) {
+// CheckSolution checks correctness of the solution for the given token.
+func (s *Service) CheckSolution(t token.Token, payload []byte) ([]byte, *wfErrors.Error) {
 	reqLogger := logger.NewLogger(s.logger, string(t))
 	reqLogger.Println("handling solution request")
 
 	if payload == nil {
-		return nil, NewError(ErrInvalidPayloadFormat, errors.New("empty payload"))
+		return nil, wfErrors.NewError(wfErrors.ErrInvalidPayloadFormat, errors.New("empty payload"))
 	}
 
 	var reqPayload payloadRequestSolution
 	err := json.Unmarshal(payload, &reqPayload)
 	if err != nil {
-		return nil, NewError(ErrInvalidPayloadFormat, err)
+		return nil, wfErrors.NewError(wfErrors.ErrInvalidPayloadFormat, err)
 	}
 
 	correct, checkSolErr := s.challengesService.CheckSolution(t, uint64(reqPayload.Solution))
 	if checkSolErr != nil {
-		return nil, NewError(ErrInvalidSolution, checkSolErr)
+		return nil, wfErrors.NewError(wfErrors.ErrInvalidSolution, checkSolErr)
 	}
 
 	if !correct {
-		return nil, NewError(ErrInvalidSolution, fmt.Errorf("solution is invalid: %d", reqPayload.Solution))
+		return nil, wfErrors.NewError(wfErrors.ErrInvalidSolution, fmt.Errorf("solution is invalid: %d", reqPayload.Solution))
 	}
 
 	quote := s.quotesService.GetRandom()
 	respPayload := payloadResponseSolution{Quote: quote}
 	data, err := json.Marshal(respPayload)
 	if err != nil {
-		return nil, NewError(ErrGeneric, err)
+		return nil, wfErrors.NewError(wfErrors.ErrGeneric, err)
 	}
 
 	return data, nil

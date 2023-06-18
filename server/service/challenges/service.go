@@ -3,7 +3,6 @@ package challenges
 import (
 	"log"
 
-	"blitzarx1/wisdom-fort/server/logger"
 	"blitzarx1/wisdom-fort/server/service/rps"
 	"blitzarx1/wisdom-fort/server/service/storage"
 	"blitzarx1/wisdom-fort/server/token"
@@ -19,10 +18,8 @@ type Service struct {
 	rpsService *rps.Service
 }
 
-func New(l *log.Logger, storageService *storage.Service) *Service {
+func New(l *log.Logger, storageService *storage.Service, rpsService *rps.Service) *Service {
 	l.Println("initializing challenges service")
-
-	rpsService := rps.New(logger.NewLogger(l, "rps"), storageService)
 
 	return &Service{
 		logger: l,
@@ -35,7 +32,7 @@ func New(l *log.Logger, storageService *storage.Service) *Service {
 }
 
 func (s *Service) ComputeChallenge(t token.Token) uint8 {
-	rps := s.rpsService.IncAndGet(t.IP())
+	rps := s.rpsService.Get(t.IP())
 
 	diff := uint8(rps)
 

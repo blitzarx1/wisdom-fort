@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -9,28 +10,35 @@ import (
 
 	"blitzarx1/wisdom-fort/server/logger"
 	"blitzarx1/wisdom-fort/server/service"
+	"blitzarx1/wisdom-fort/server/service/rps"
+	"blitzarx1/wisdom-fort/server/service/storage"
 	"blitzarx1/wisdom-fort/server/token"
+	wfErrors "blitzarx1/wisdom-fort/server/errors"
 )
 
 const port = 8080
 
 type App struct {
-	logger  *log.Logger
-	service *service.Service
+	logger     *log.Logger
+	service    *service.Service
+	rpsService *rps.Service
 }
 
 func New() (*App, error) {
 	l := logger.NewLogger(nil, "server")
 	l.Println("initializing server")
 
-	service, err := service.New(logger.NewLogger(l, "service"))
+	storageService := storage.New(logger.NewLogger(l, "storage"))
+	rpsService := rps.New(logger.NewLogger(l, "rps"), storageService)
+	service, err := service.New(logger.NewLogger(l, "service"), rpsService, storageService)
 	if err != nil {
 		return nil, err
 	}
 
 	return &App{
-		logger:  l,
-		service: service,
+		logger:     l,
+		service:    service,
+		rpsService: rpsService,
 	}, nil
 }
 
@@ -64,33 +72,37 @@ func (a *App) handleConnection(conn net.Conn) {
 
 	data, err := a.read(conn)
 	if err != nil {
-		a.handleError(conn, nil, service.NewError(service.ErrGeneric, err))
+		a.handleError(conn, nil, wfErrors.NewError(wfErrors.ErrGeneric, err))
 		return
 	}
 
 	var req request
 	if err := json.Unmarshal(data, &req); err != nil {
-		a.handleError(conn, nil, service.NewError(service.ErrInvalidMsgFormat, err))
+		a.handleError(conn, nil, wfErrors.NewError(wfErrors.ErrInvalidMsgFormat, err))
 		return
 	}
 
 	clientAddr, ok := conn.RemoteAddr().(*net.TCPAddr)
 	if !ok {
-		a.handleError(conn, nil, service.NewError(service.ErrGeneric, fmt.Errorf("failed to get client addr: %s", clientAddr)))
+		a.handleError(conn, nil, wfErrors.NewError(wfErrors.ErrGeneric, fmt.Errorf("failed to get client addr: %s", clientAddr)))
 	}
 
 	ip := clientAddr.IP.String()
-	token := a.token(ip, &req)
+	token, err := a.auth(ip, &req)
+	if err != nil {
+		a.handleError(conn, nil, wfErrors.NewError(wfErrors.ErrMissingToken, err))
+		return
+	}
 
 	var respPayload []byte
-	var handleErr *service.Error
+	var handleErr *wfErrors.Error
 	switch req.Action {
 	case CHALLENGE.String():
 		respPayload, handleErr = a.service.GenerateChallenge(token)
 	case SOLUTION.String():
 		respPayload, handleErr = a.service.CheckSolution(token, req.Payload)
 	default:
-		handleErr = service.NewError(service.ErrInvalidAction, fmt.Errorf("unknown action: %s", req.Action))
+		handleErr = wfErrors.NewError(wfErrors.ErrInvalidAction, fmt.Errorf("unknown action: %s", req.Action))
 	}
 	if handleErr != nil {
 		a.handleError(conn, &token, handleErr)
@@ -133,16 +145,24 @@ func (a *App) write(conn net.Conn, data []byte) error {
 	return nil
 }
 
-func (a *App) token(ip string, req *request) token.Token {
+// auth gates all calls and returns a token for the given request.
+// Returns error if request requires a token but none is provided.
+func (a *App) auth(ip string, req *request) (token.Token, error) {
+	a.rpsService.Inc(ip)
+
 	if req.Token != nil && *req.Token != "" {
 		t := token.Token(*req.Token)
-		return t
+		return t, nil
 	}
 
-	return a.service.GenerateToken(ip)
+	if req.Action == SOLUTION.String() {
+		return token.Token(""), errors.New("missing token")
+	}
+
+	return a.service.GenerateToken(ip), nil
 }
 
-func (a *App) handleError(conn net.Conn, t *token.Token, err *service.Error) {
+func (a *App) handleError(conn net.Conn, t *token.Token, err *wfErrors.Error) {
 	a.logError(err)
 	a.write(conn, a.errorResponse(t, err))
 }
@@ -157,7 +177,7 @@ func (a *App) successResponse(token token.Token, payload []byte) []byte {
 	return data
 }
 
-func (a *App) errorResponse(token *token.Token, err *service.Error) []byte {
+func (a *App) errorResponse(token *token.Token, err *wfErrors.Error) []byte {
 	var t string
 	if token != nil {
 		t = string(*token)

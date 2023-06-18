@@ -1,4 +1,4 @@
-package service
+package errors
 
 import "fmt"
 
@@ -12,6 +12,7 @@ const (
 	ErrChallengeAlreadyProvided
 	ErrInvalidSolution
 	ErrNoActiveChallenge
+	ErrMissingToken
 )
 
 var codeStr = []string{
@@ -22,6 +23,7 @@ var codeStr = []string{
 	ErrChallengeAlreadyProvided: "ErrChallengeAlreadyProvided",
 	ErrInvalidSolution:          "ErrInvalidSolution",
 	ErrNoActiveChallenge:        "ErrNoActiveChallenge",
+	ErrMissingToken:             "ErrMissingToken",
 }
 
 var msg = map[ErrorCode]string{
@@ -32,6 +34,7 @@ var msg = map[ErrorCode]string{
 	ErrChallengeAlreadyProvided: "challenge has been already provided",
 	ErrInvalidSolution:          "solution is invalid",
 	ErrNoActiveChallenge:        "no active challenge for token",
+	ErrMissingToken:             "missing token",
 }
 
 func (ec ErrorCode) String() string {
