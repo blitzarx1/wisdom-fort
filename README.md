@@ -57,3 +57,12 @@ To run tests, use the go test command:
 ```sh
 go test ./...
 ```
+
+## TODO
+
+Server:
+- [ ] Tests
+- [ ] Graceful shutdown with ctx
+
+Client:
+- [ ] Extract client from main
