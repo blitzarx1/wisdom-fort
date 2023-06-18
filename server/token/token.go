@@ -1,4 +1,4 @@
-package service
+package token
 
 import (
 	"crypto/md5"
@@ -15,14 +15,14 @@ const (
 
 type Token string
 
-// newToken returns a new Token generated from the given IP address
+// New returns a new Token generated from the given IP address
 // and the current time plus random part
-func newToken(ip string) Token {
+func New(ip string) Token {
 	token := fmt.Sprintf("%s"+separatorToken+"%d"+separatorToken+"%s", ip, time.Now().UnixNano(), generateRandomPart())
 	return Token(token)
 }
 
-func (t Token) ip() string {
+func (t Token) IP() string {
 	return strings.Split(string(t), separatorToken)[0]
 }
 

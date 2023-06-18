@@ -3,7 +3,7 @@ package service
 import "blitzarx1/wisdom-fort/server/service/quotes"
 
 type payloadRequestSolution struct {
-	Solution solution `json:"solution"`
+	Solution uint64 `json:"solution"`
 }
 
 type payloadResponseSolution struct {
@@ -11,5 +11,5 @@ type payloadResponseSolution struct {
 }
 
 type payloadChallenge struct {
-	Target difficulty `json:"target"`
+	Target uint8 `json:"target"`
 }

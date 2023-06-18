@@ -1,48 +1,55 @@
 package challenges
 
 import (
-	"errors"
-	"fmt"
 	"log"
-	"sync"
+
+	"blitzarx1/wisdom-fort/server/logger"
+	"blitzarx1/wisdom-fort/server/service/rps"
+	"blitzarx1/wisdom-fort/server/service/storage"
+	"blitzarx1/wisdom-fort/server/token"
 )
 
+// Service tracks challenges for client, validates solutions and computes difficulty.
 type Service struct {
 	logger *log.Logger
 
-	lock             sync.RWMutex
-	activeChallenges map[string]uint8
+	storageID storage.StorageID
+	storage   *storage.Service
+
+	rpsService *rps.Service
 }
 
-func New(logger *log.Logger) *Service {
-	logger.Println("initializing challenges service")
+func New(l *log.Logger, storageService *storage.Service) *Service {
+	l.Println("initializing challenges service")
+
+	rpsService := rps.New(logger.NewLogger(l, "rps"), storageService)
 
 	return &Service{
-		logger: logger,
+		logger: l,
 
-		lock:             sync.RWMutex{},
-		activeChallenges: make(map[string]uint8),
+		storageID: storageService.AddStore(),
+		storage:   storageService,
+
+		rpsService: rpsService,
 	}
 }
 
-func (s *Service) ComputeChallenge(token string) uint8 {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+func (s *Service) ComputeChallenge(t token.Token) uint8 {
+	rps := s.rpsService.IncAndGet(t.IP())
 
-	// TODO: check rps and choose corresponding difficulty
-	var diff uint8 = 1
+	diff := uint8(rps)
 
-	s.activeChallenges[token] = diff
+	s.storage.Set(s.storageID, string(t), uint(diff))
 	return diff
 }
 
 func (s *Service) Challenge(key string) (uint8, error) {
-	challenge, ok := s.activeChallenges[key]
-	if !ok {
-		return 0, errors.New("no challenge found")
+	challenge, err := s.storage.Get(s.storageID, key)
+	if err != nil {
+		return 0, err
 	}
 
-	return challenge, nil
+	return uint8(challenge), nil
 }
 
 // CheckSolution validates the solution provided by the client.
@@ -50,23 +57,20 @@ func (s *Service) Challenge(key string) (uint8, error) {
 // If the solution is correct, the corresponding challenge is removed from active challenges.
 //
 // The function returns a boolean indicating whether the solution is correct, and an error if something went wrong.
-func (s *Service) CheckSolution(t string, sol uint64) (bool, error) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	diff, ok := s.activeChallenges[t]
-	if !ok {
-		return false, fmt.Errorf("active challenges not found for token: %s", t)
+func (s *Service) CheckSolution(t token.Token, sol uint64) (bool, error) {
+	diff, err := s.storage.Get(s.storageID, string(t))
+	if err != nil {
+		return false, err
 	}
 
 	// generate hash of solution with the token
-	hash := generateHash(t, sol)
+	hash := generateHash(string(t), sol)
 
 	// check if the hash meets the difficulty requirement
-	isCorrect := checkHash(hash, diff)
+	isCorrect := checkHash(hash, uint8(diff))
 
 	if isCorrect {
-		delete(s.activeChallenges, t)
+		s.storage.Delete(s.storageID, string(t))
 	}
 
 	return isCorrect, nil

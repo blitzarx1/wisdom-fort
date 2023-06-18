@@ -7,7 +7,9 @@ import (
 	"net"
 	"os"
 
+	"blitzarx1/wisdom-fort/server/logger"
 	"blitzarx1/wisdom-fort/server/service"
+	"blitzarx1/wisdom-fort/server/token"
 )
 
 const port = 8080
@@ -18,16 +20,16 @@ type App struct {
 }
 
 func New() (*App, error) {
-	logger := service.NewLogger(nil, "server")
-	logger.Println("initializing server")
+	l := logger.NewLogger(nil, "server")
+	l.Println("initializing server")
 
-	service, err := service.New(service.NewLogger(logger, "service"))
+	service, err := service.New(logger.NewLogger(l, "service"))
 	if err != nil {
 		return nil, err
 	}
 
 	return &App{
-		logger:  logger,
+		logger:  l,
 		service: service,
 	}, nil
 }
@@ -84,9 +86,9 @@ func (a *App) handleConnection(conn net.Conn) {
 	var handleErr *service.Error
 	switch req.Action {
 	case CHALLENGE.String():
-		respPayload, handleErr = a.service.GenerateChallenge(ip, token)
+		respPayload, handleErr = a.service.GenerateChallenge(token)
 	case SOLUTION.String():
-		respPayload, handleErr = a.service.CheckSolution(ip, token, req.Payload)
+		respPayload, handleErr = a.service.CheckSolution(token, req.Payload)
 	default:
 		handleErr = service.NewError(service.ErrInvalidAction, fmt.Errorf("unknown action: %s", req.Action))
 	}
@@ -131,21 +133,21 @@ func (a *App) write(conn net.Conn, data []byte) error {
 	return nil
 }
 
-func (a *App) token(ip string, req *request) service.Token {
+func (a *App) token(ip string, req *request) token.Token {
 	if req.Token != nil && *req.Token != "" {
-		t := service.Token(*req.Token)
+		t := token.Token(*req.Token)
 		return t
 	}
 
 	return a.service.GenerateToken(ip)
 }
 
-func (a *App) handleError(conn net.Conn, t *service.Token, err *service.Error) {
+func (a *App) handleError(conn net.Conn, t *token.Token, err *service.Error) {
 	a.logError(err)
 	a.write(conn, a.errorResponse(t, err))
 }
 
-func (a *App) successResponse(token service.Token, payload []byte) []byte {
+func (a *App) successResponse(token token.Token, payload []byte) []byte {
 	resp := response{
 		Token:   string(token),
 		Payload: payload,
@@ -155,7 +157,7 @@ func (a *App) successResponse(token service.Token, payload []byte) []byte {
 	return data
 }
 
-func (a *App) errorResponse(token *service.Token, err *service.Error) []byte {
+func (a *App) errorResponse(token *token.Token, err *service.Error) []byte {
 	var t string
 	if token != nil {
 		t = string(*token)

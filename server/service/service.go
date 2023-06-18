@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"log"
 
+	"blitzarx1/wisdom-fort/server/logger"
 	"blitzarx1/wisdom-fort/server/service/challenges"
 	"blitzarx1/wisdom-fort/server/service/quotes"
-)
-
-type (
-	difficulty uint8
-	solution   uint64
+	"blitzarx1/wisdom-fort/server/service/storage"
+	"blitzarx1/wisdom-fort/server/token"
 )
 
 const (
@@ -29,39 +27,41 @@ type Service struct {
 	challengesService *challenges.Service
 }
 
-func New(logger *log.Logger) (*Service, error) {
-	logger.Println("initializing service")
+func New(l *log.Logger) (*Service, error) {
+	l.Println("initializing service")
 
-	quotesService, err := quotes.New(NewLogger(logger, "quotes"), quotesFilePath)
+	quotesService, err := quotes.New(logger.NewLogger(l, "quotes"), quotesFilePath)
 	if err != nil {
 		return nil, err
 	}
 
-	challengesService := challenges.New(NewLogger(logger, "challenges"))
+	storageService := storage.New(logger.NewLogger(l, "storage"))
+
+	challengesService := challenges.New(logger.NewLogger(l, "challenges"), storageService)
 	return &Service{
-		logger: logger,
+		logger: l,
 
 		quotesService:     quotesService,
 		challengesService: challengesService,
 	}, nil
 }
 
-func (s *Service) GenerateToken(ip string) Token {
-	return newToken(ip)
+func (s *Service) GenerateToken(ip string) token.Token {
+	return token.New(ip)
 }
 
-func (s *Service) GenerateChallenge(ip string, t Token) ([]byte, *Error) {
-	reqLogger := NewLogger(s.logger, string(t))
+func (s *Service) GenerateChallenge(t token.Token) ([]byte, *Error) {
+	reqLogger := logger.NewLogger(s.logger, string(t))
 	reqLogger.Println("handling challenge request")
 
 	var diff uint8
 	var err error
 	challengeKey := string(t)
 	if diff, err = s.challengesService.Challenge(challengeKey); err != nil {
-		diff = s.challengesService.ComputeChallenge(challengeKey)
+		diff = s.challengesService.ComputeChallenge(t)
 	}
 
-	payload := payloadChallenge{Target: difficulty(diff)}
+	payload := payloadChallenge{Target: diff}
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return nil, NewError(ErrGeneric, err)
@@ -70,8 +70,8 @@ func (s *Service) GenerateChallenge(ip string, t Token) ([]byte, *Error) {
 	return data, nil
 }
 
-func (s *Service) CheckSolution(ip string, t Token, payload []byte) ([]byte, *Error) {
-	reqLogger := NewLogger(s.logger, string(t))
+func (s *Service) CheckSolution(t token.Token, payload []byte) ([]byte, *Error) {
+	reqLogger := logger.NewLogger(s.logger, string(t))
 	reqLogger.Println("handling solution request")
 
 	if payload == nil {
@@ -84,7 +84,7 @@ func (s *Service) CheckSolution(ip string, t Token, payload []byte) ([]byte, *Er
 		return nil, NewError(ErrInvalidPayloadFormat, err)
 	}
 
-	correct, checkSolErr := s.challengesService.CheckSolution(string(t), uint64(reqPayload.Solution))
+	correct, checkSolErr := s.challengesService.CheckSolution(t, uint64(reqPayload.Solution))
 	if checkSolErr != nil {
 		return nil, NewError(ErrInvalidSolution, checkSolErr)
 	}

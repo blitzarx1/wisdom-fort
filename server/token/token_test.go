@@ -1,4 +1,4 @@
-package service
+package token
 
 import (
 	"strings"
@@ -22,7 +22,7 @@ func Test_newToken(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := newToken(tt.args.ip)
+			got := New(tt.args.ip)
 			if !strings.HasPrefix(string(got), tt.args.ip+separatorToken) {
 				t.Errorf("newToken() = %v, want prefix %v", got, tt.args.ip+separatorToken)
 			}
@@ -44,7 +44,7 @@ func TestToken_ip(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.tr.ip(); got != tt.want {
+			if got := tt.tr.IP(); got != tt.want {
 				t.Errorf("Token.ip() = %v, want %v", got, tt.want)
 			}
 		})

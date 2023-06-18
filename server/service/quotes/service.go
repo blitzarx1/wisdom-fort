@@ -8,6 +8,7 @@ import (
 	"os"
 )
 
+// Service manages the set of available quotes.
 type Service struct {
 	logger *log.Logger
 	quotes []Quote
