@@ -1,13 +1,10 @@
 package service
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
-	"strconv"
 	"sync"
 
 	"blitzarx1/wisdom-fort/server/service/quotes"
@@ -65,7 +62,7 @@ func (s *Service) GenerateChallenge(ip string, t Token) ([]byte, *Error) {
 		difficulty = s.computeChallenge(t)
 	}
 
-	payload := PayloadChallenge{Target: difficulty}
+	payload := payloadChallenge{Target: difficulty}
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return nil, NewError(ErrGeneric, err)
@@ -82,7 +79,7 @@ func (s *Service) CheckSolution(ip string, t Token, payload []byte) ([]byte, *Er
 		return nil, NewError(ErrInvalidPayloadFormat, errors.New("empty payload"))
 	}
 
-	var reqPayload PayloadSolutionRequest
+	var reqPayload payloadRequestSolution
 	err := json.Unmarshal(payload, &reqPayload)
 	if err != nil {
 		return nil, NewError(ErrInvalidPayloadFormat, err)
@@ -98,7 +95,7 @@ func (s *Service) CheckSolution(ip string, t Token, payload []byte) ([]byte, *Er
 	}
 
 	quote := s.quotesService.GetRandom()
-	respPayload := PayloadSolutionResponse{Quote: quote}
+	respPayload := payloadResponseSolution{Quote: quote}
 	data, err := json.Marshal(respPayload)
 	if err != nil {
 		return nil, NewError(ErrGeneric, err)
@@ -118,6 +115,11 @@ func (s *Service) computeChallenge(token Token) difficulty {
 	return difficulty(diff)
 }
 
+// checkSolution validates the solution provided by the client.
+//
+// If the solution is correct, the corresponding challenge is removed from active challenges.
+//
+// The function returns a boolean indicating whether the solution is correct, and an error if something went wrong.
 func (s *Service) checkSolution(t Token, sol solution) (bool, *Error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -138,35 +140,4 @@ func (s *Service) checkSolution(t Token, sol solution) (bool, *Error) {
 	}
 
 	return isCorrect, nil
-}
-
-func generateHash(token Token, sol solution) string {
-	// convert solution to string
-	solStr := strconv.FormatUint(uint64(sol), 10)
-
-	// combine token and solution into a single string
-	data := string(token) + solStr
-
-	// generate SHA-256 hash
-	hasher := sha256.New()
-	hasher.Write([]byte(data))
-	hash := hasher.Sum(nil)
-
-	// return hash as a hexadecimal string
-	return hex.EncodeToString(hash)
-}
-
-func checkHash(hash string, diff difficulty) bool {
-	// count the number of leading zeroes
-	leadingZeroes := 0
-	for _, rune := range hash {
-		if rune != '0' {
-			break
-		}
-
-		leadingZeroes++
-	}
-
-	// return whether the number of leading zeroes meets the difficulty requirement
-	return leadingZeroes >= int(diff)
 }

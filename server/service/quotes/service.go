@@ -2,6 +2,7 @@ package quotes
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"math/rand"
 	"os"
@@ -25,6 +26,10 @@ func New(logger *log.Logger, quotesFilePath string) (*Service, error) {
 	s := &Service{logger: logger}
 	if err := json.Unmarshal(data, &s.quotes); err != nil {
 		return nil, err
+	}
+
+	if len(s.quotes) == 0 {
+		return nil, errors.New("no quotes found")
 	}
 
 	logger.Printf("read %d quotes\n", len(s.quotes))

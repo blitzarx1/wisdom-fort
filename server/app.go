@@ -10,6 +10,8 @@ import (
 	"blitzarx1/wisdom-fort/server/service"
 )
 
+const port = 8080
+
 type App struct {
 	logger  *log.Logger
 	service *service.Service
@@ -31,7 +33,8 @@ func New() (*App, error) {
 }
 
 func (a *App) Run() error {
-	ln, err := net.Listen("tcp", ":8080")
+	portStr := fmt.Sprintf(":%d", port)
+	ln, err := net.Listen("tcp", portStr)
 	if err != nil {
 		a.logError(err)
 		return err
@@ -42,7 +45,7 @@ func (a *App) Run() error {
 }
 
 func (a *App) serve(ln net.Listener) error {
-	a.logger.Println("server is listening on port 8080")
+	a.logger.Println("server is listening on ", port)
 
 	for {
 		conn, err := ln.Accept()
@@ -87,7 +90,10 @@ func (a *App) handleConnection(conn net.Conn) {
 		return
 	}
 
-	a.write(conn, a.successResponse(token, respPayload))
+	if err := a.write(conn, a.successResponse(token, respPayload)); err != nil {
+		a.logError(err)
+		return
+	}
 }
 
 func (a *App) logError(err error) {
@@ -109,13 +115,15 @@ func (a *App) read(conn net.Conn) ([]byte, error) {
 	return buffer[:n], nil
 }
 
-func (a *App) write(conn net.Conn, data []byte) {
+func (a *App) write(conn net.Conn, data []byte) error {
 	a.logger.Println("writing data: ", string(data))
 
 	_, err := conn.Write(data)
 	if err != nil {
-		a.logError(err)
+		return err
 	}
+
+	return nil
 }
 
 func (a *App) token(ip string, req *request) service.Token {
