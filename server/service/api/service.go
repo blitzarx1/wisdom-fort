@@ -1,4 +1,4 @@
-package service
+package api
 
 import (
 	"encoding/json"
@@ -6,17 +6,13 @@ import (
 	"fmt"
 	"log"
 
+	wfErrors "blitzarx1/wisdom-fort/server/errors"
 	"blitzarx1/wisdom-fort/server/logger"
 	"blitzarx1/wisdom-fort/server/service/challenges"
 	"blitzarx1/wisdom-fort/server/service/quotes"
 	"blitzarx1/wisdom-fort/server/service/rps"
 	"blitzarx1/wisdom-fort/server/service/storage"
 	"blitzarx1/wisdom-fort/server/token"
-	wfErrors "blitzarx1/wisdom-fort/server/errors"
-)
-
-const (
-	quotesFilePath = "server/quotes.json"
 )
 
 // Service encapsulates logic of handling requests from the client.
@@ -30,15 +26,15 @@ type Service struct {
 	challengesService *challenges.Service
 }
 
-func New(l *log.Logger, rpsService *rps.Service, storageService *storage.Service) (*Service, error) {
+func New(
+	l *log.Logger,
+	rpsService *rps.Service,
+	storageService *storage.Service,
+	quotesService *quotes.Service,
+	challengesService *challenges.Service,
+) (*Service, error) {
 	l.Println("initializing service")
 
-	quotesService, err := quotes.New(logger.NewLogger(l, "quotes"), quotesFilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	challengesService := challenges.New(logger.NewLogger(l, "challenges"), storageService, rpsService)
 	return &Service{
 		logger: l,
 

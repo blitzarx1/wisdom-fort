@@ -1,4 +1,4 @@
-package service
+package api
 
 import "blitzarx1/wisdom-fort/server/service/quotes"
 

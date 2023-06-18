@@ -8,19 +8,26 @@ import (
 	"net"
 	"os"
 
+	wfErrors "blitzarx1/wisdom-fort/server/errors"
 	"blitzarx1/wisdom-fort/server/logger"
-	"blitzarx1/wisdom-fort/server/service"
+	"blitzarx1/wisdom-fort/server/service/api"
+	"blitzarx1/wisdom-fort/server/service/challenges"
+	"blitzarx1/wisdom-fort/server/service/quotes"
 	"blitzarx1/wisdom-fort/server/service/rps"
 	"blitzarx1/wisdom-fort/server/service/storage"
 	"blitzarx1/wisdom-fort/server/token"
-	wfErrors "blitzarx1/wisdom-fort/server/errors"
 )
 
-const port = 8080
+const (
+	port = 8080
+
+	quotesFilePath = "server/quotes.json"
+)
 
 type App struct {
-	logger     *log.Logger
-	service    *service.Service
+	logger *log.Logger
+
+	apiService *api.Service
 	rpsService *rps.Service
 }
 
@@ -28,18 +35,12 @@ func New() (*App, error) {
 	l := logger.NewLogger(nil, "server")
 	l.Println("initializing server")
 
-	storageService := storage.New(logger.NewLogger(l, "storage"))
-	rpsService := rps.New(logger.NewLogger(l, "rps"), storageService)
-	service, err := service.New(logger.NewLogger(l, "service"), rpsService, storageService)
-	if err != nil {
+	a := &App{logger: l}
+	if err := a.initServices(); err != nil {
 		return nil, err
 	}
 
-	return &App{
-		logger:     l,
-		service:    service,
-		rpsService: rpsService,
-	}, nil
+	return a, nil
 }
 
 func (a *App) Run() error {
@@ -52,6 +53,32 @@ func (a *App) Run() error {
 	defer ln.Close()
 
 	return a.serve(ln)
+}
+
+func (a *App) initServices() error {
+	a.logger.Println("initializing services")
+
+	var err error
+
+	storageService := storage.New(logger.NewLogger(a.logger, "storage"))
+	a.rpsService = rps.New(logger.NewLogger(a.logger, "rps"), storageService)
+	quotesService, err := quotes.New(logger.NewLogger(a.logger, "quotes"), quotesFilePath)
+	if err != nil {
+		return err
+	}
+	challengesService := challenges.New(logger.NewLogger(a.logger, "challenges"), storageService, a.rpsService)
+	a.apiService, err = api.New(
+		logger.NewLogger(a.logger, "service"),
+		a.rpsService,
+		storageService,
+		quotesService,
+		challengesService,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (a *App) serve(ln net.Listener) error {
@@ -98,9 +125,9 @@ func (a *App) handleConnection(conn net.Conn) {
 	var handleErr *wfErrors.Error
 	switch req.Action {
 	case CHALLENGE.String():
-		respPayload, handleErr = a.service.GenerateChallenge(token)
+		respPayload, handleErr = a.apiService.GenerateChallenge(token)
 	case SOLUTION.String():
-		respPayload, handleErr = a.service.CheckSolution(token, req.Payload)
+		respPayload, handleErr = a.apiService.CheckSolution(token, req.Payload)
 	default:
 		handleErr = wfErrors.NewError(wfErrors.ErrInvalidAction, fmt.Errorf("unknown action: %s", req.Action))
 	}
@@ -159,7 +186,7 @@ func (a *App) auth(ip string, req *request) (token.Token, error) {
 		return token.Token(""), errors.New("missing token")
 	}
 
-	return a.service.GenerateToken(ip), nil
+	return a.apiService.GenerateToken(ip), nil
 }
 
 func (a *App) handleError(conn net.Conn, t *token.Token, err *wfErrors.Error) {
