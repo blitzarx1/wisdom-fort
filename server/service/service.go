@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"sync"
 
+	"blitzarx1/wisdom-fort/server/service/challenges"
 	"blitzarx1/wisdom-fort/server/service/quotes"
 )
 
@@ -25,10 +25,8 @@ const (
 type Service struct {
 	logger *log.Logger
 
-	quotesService *quotes.Service
-
-	lock             sync.RWMutex
-	activeChallenges map[Token]difficulty
+	quotesService     *quotes.Service
+	challengesService *challenges.Service
 }
 
 func New(logger *log.Logger) (*Service, error) {
@@ -39,13 +37,12 @@ func New(logger *log.Logger) (*Service, error) {
 		return nil, err
 	}
 
+	challengesService := challenges.New(NewLogger(logger, "challenges"))
 	return &Service{
 		logger: logger,
 
-		quotesService: quotesService,
-
-		lock:             sync.RWMutex{},
-		activeChallenges: make(map[Token]difficulty),
+		quotesService:     quotesService,
+		challengesService: challengesService,
 	}, nil
 }
 
@@ -57,12 +54,14 @@ func (s *Service) GenerateChallenge(ip string, t Token) ([]byte, *Error) {
 	reqLogger := NewLogger(s.logger, string(t))
 	reqLogger.Println("handling challenge request")
 
-	difficulty, ok := s.activeChallenges[t]
-	if !ok {
-		difficulty = s.computeChallenge(t)
+	var diff uint8
+	var err error
+	challengeKey := string(t)
+	if diff, err = s.challengesService.Challenge(challengeKey); err != nil {
+		diff = s.challengesService.ComputeChallenge(challengeKey)
 	}
 
-	payload := payloadChallenge{Target: difficulty}
+	payload := payloadChallenge{Target: difficulty(diff)}
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return nil, NewError(ErrGeneric, err)
@@ -85,9 +84,9 @@ func (s *Service) CheckSolution(ip string, t Token, payload []byte) ([]byte, *Er
 		return nil, NewError(ErrInvalidPayloadFormat, err)
 	}
 
-	correct, checkSolErr := s.checkSolution(t, reqPayload.Solution)
+	correct, checkSolErr := s.challengesService.CheckSolution(string(t), uint64(reqPayload.Solution))
 	if checkSolErr != nil {
-		return nil, checkSolErr
+		return nil, NewError(ErrInvalidSolution, checkSolErr)
 	}
 
 	if !correct {
@@ -102,42 +101,4 @@ func (s *Service) CheckSolution(ip string, t Token, payload []byte) ([]byte, *Er
 	}
 
 	return data, nil
-}
-
-func (s *Service) computeChallenge(token Token) difficulty {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	// TODO: check rps and choose corresponding difficulty
-	diff := 1
-
-	s.activeChallenges[token] = difficulty(diff)
-	return difficulty(diff)
-}
-
-// checkSolution validates the solution provided by the client.
-//
-// If the solution is correct, the corresponding challenge is removed from active challenges.
-//
-// The function returns a boolean indicating whether the solution is correct, and an error if something went wrong.
-func (s *Service) checkSolution(t Token, sol solution) (bool, *Error) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	diff, ok := s.activeChallenges[t]
-	if !ok {
-		return false, NewError(ErrNoActiveChallenge, fmt.Errorf("active challenges not found for token: %s", t))
-	}
-
-	// generate hash of solution with the token
-	hash := generateHash(t, sol)
-
-	// check if the hash meets the difficulty requirement
-	isCorrect := checkHash(hash, diff)
-
-	if isCorrect {
-		delete(s.activeChallenges, t)
-	}
-
-	return isCorrect, nil
 }

@@ -72,7 +72,12 @@ func (a *App) handleConnection(conn net.Conn) {
 		return
 	}
 
-	ip := conn.RemoteAddr().String()
+	clientAddr, ok := conn.RemoteAddr().(*net.TCPAddr)
+	if !ok {
+		a.handleError(conn, nil, service.NewError(service.ErrGeneric, fmt.Errorf("failed to get client addr: %s", clientAddr)))
+	}
+
+	ip := clientAddr.IP.String()
 	token := a.token(ip, &req)
 
 	var respPayload []byte

@@ -1,4 +1,4 @@
-package service
+package challenges
 
 import (
 	"testing"
@@ -6,8 +6,8 @@ import (
 
 func Test_generateHash(t *testing.T) {
 	type args struct {
-		token Token
-		sol   solution
+		token string
+		sol   uint64
 	}
 	tests := []struct {
 		name string
@@ -44,7 +44,7 @@ func Test_generateHash(t *testing.T) {
 func Test_checkHash(t *testing.T) {
 	type args struct {
 		hash string
-		diff difficulty
+		diff uint8
 	}
 	tests := []struct {
 		name string
