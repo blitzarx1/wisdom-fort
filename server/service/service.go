@@ -1,10 +1,13 @@
 package service
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"sync"
 
 	"blitzarx1/wisdom-fort/server/service/quotes"
@@ -53,7 +56,7 @@ func (s *Service) GenerateToken(ip string) Token {
 	return newToken(ip)
 }
 
-func (s *Service) HandleChallenge(ip string, t Token) ([]byte, *Error) {
+func (s *Service) GenerateChallenge(ip string, t Token) ([]byte, *Error) {
 	reqLogger := NewLogger(s.logger, string(t))
 	reqLogger.Println("handling challenge request")
 
@@ -62,7 +65,7 @@ func (s *Service) HandleChallenge(ip string, t Token) ([]byte, *Error) {
 		difficulty = s.computeChallenge(t)
 	}
 
-	payload := PayloadChallenge{Target: uint8(difficulty)}
+	payload := PayloadChallenge{Target: difficulty}
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return nil, NewError(ErrGeneric, err)
@@ -71,7 +74,7 @@ func (s *Service) HandleChallenge(ip string, t Token) ([]byte, *Error) {
 	return data, nil
 }
 
-func (s *Service) HandleSolution(ip string, t Token, payload []byte) ([]byte, *Error) {
+func (s *Service) CheckSolution(ip string, t Token, payload []byte) ([]byte, *Error) {
 	reqLogger := NewLogger(s.logger, string(t))
 	reqLogger.Println("handling solution request")
 
@@ -119,17 +122,51 @@ func (s *Service) checkSolution(t Token, sol solution) (bool, *Error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	_, ok := s.activeChallenges[t]
+	diff, ok := s.activeChallenges[t]
 	if !ok {
 		return false, NewError(ErrNoActiveChallenge, fmt.Errorf("active challenges not found for token: %s", t))
 	}
 
-	// TODO: check solution computing hash with client sol and check for diff condition
-	isCorrect := sol == 1
+	// generate hash of solution with the token
+	hash := generateHash(t, sol)
+
+	// check if the hash meets the difficulty requirement
+	isCorrect := checkHash(hash, diff)
 
 	if isCorrect {
 		delete(s.activeChallenges, t)
 	}
 
 	return isCorrect, nil
+}
+
+func generateHash(token Token, sol solution) string {
+	// convert solution to string
+	solStr := strconv.FormatUint(uint64(sol), 10)
+
+	// combine token and solution into a single string
+	data := string(token) + solStr
+
+	// generate SHA-256 hash
+	hasher := sha256.New()
+	hasher.Write([]byte(data))
+	hash := hasher.Sum(nil)
+
+	// return hash as a hexadecimal string
+	return hex.EncodeToString(hash)
+}
+
+func checkHash(hash string, diff difficulty) bool {
+	// count the number of leading zeroes
+	leadingZeroes := 0
+	for _, rune := range hash {
+		if rune != '0' {
+			break
+		}
+
+		leadingZeroes++
+	}
+
+	// return whether the number of leading zeroes meets the difficulty requirement
+	return leadingZeroes >= int(diff)
 }

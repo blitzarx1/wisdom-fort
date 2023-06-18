@@ -76,9 +76,9 @@ func (a *App) handleConnection(conn net.Conn) {
 	var handleErr *service.Error
 	switch req.Action {
 	case CHALLENGE.String():
-		respPayload, handleErr = a.service.HandleChallenge(ip, token)
+		respPayload, handleErr = a.service.GenerateChallenge(ip, token)
 	case SOLUTION.String():
-		respPayload, handleErr = a.service.HandleSolution(ip, token, req.Payload)
+		respPayload, handleErr = a.service.CheckSolution(ip, token, req.Payload)
 	default:
 		handleErr = service.NewError(service.ErrInvalidAction, fmt.Errorf("unknown action: %s", req.Action))
 	}
