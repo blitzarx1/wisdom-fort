@@ -1,4 +1,4 @@
-package api
+package handlers
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 
+	"blitzarx1/wisdom-fort/pkg/api"
 	wfErrors "blitzarx1/wisdom-fort/server/errors"
 	"blitzarx1/wisdom-fort/server/logger"
 	"blitzarx1/wisdom-fort/server/service/challenges"
@@ -60,7 +61,7 @@ func (s *Service) GenerateChallenge(t token.Token) ([]byte, *wfErrors.Error) {
 		diff = s.challengesService.ComputeChallenge(t)
 	}
 
-	payload := payloadChallenge{Target: diff}
+	payload := api.PayloadChallenge{Target: diff}
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return nil, wfErrors.NewError(wfErrors.ErrGeneric, err)
@@ -78,7 +79,7 @@ func (s *Service) CheckSolution(t token.Token, payload []byte) ([]byte, *wfError
 		return nil, wfErrors.NewError(wfErrors.ErrInvalidPayloadFormat, errors.New("empty payload"))
 	}
 
-	var reqPayload payloadRequestSolution
+	var reqPayload api.PayloadRequestSolution
 	err := json.Unmarshal(payload, &reqPayload)
 	if err != nil {
 		return nil, wfErrors.NewError(wfErrors.ErrInvalidPayloadFormat, err)
@@ -94,7 +95,7 @@ func (s *Service) CheckSolution(t token.Token, payload []byte) ([]byte, *wfError
 	}
 
 	quote := s.quotesService.GetRandom()
-	respPayload := payloadResponseSolution{Quote: quote}
+	respPayload := api.PayloadResponseSolution{Quote: quote}
 	data, err := json.Marshal(respPayload)
 	if err != nil {
 		return nil, wfErrors.NewError(wfErrors.ErrGeneric, err)

@@ -1,6 +1,7 @@
 package quotes
 
 import (
+	"blitzarx1/wisdom-fort/pkg/api"
 	"encoding/json"
 	"errors"
 	"log"
@@ -11,7 +12,7 @@ import (
 // Service manages the set of available quotes.
 type Service struct {
 	logger *log.Logger
-	quotes []Quote
+	quotes []api.Quote
 }
 
 func New(logger *log.Logger, quotesFilePath string) (*Service, error) {
@@ -38,6 +39,6 @@ func New(logger *log.Logger, quotesFilePath string) (*Service, error) {
 	return s, nil
 }
 
-func (s *Service) GetRandom() Quote {
+func (s *Service) GetRandom() api.Quote {
 	return s.quotes[rand.Intn(len(s.quotes))]
 }

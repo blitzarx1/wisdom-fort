@@ -1,9 +1,9 @@
-package server
+package api
 
-type action uint
+type Action uint
 
 const (
-	CHALLENGE action = iota
+	CHALLENGE Action = iota
 	SOLUTION
 )
 
@@ -12,6 +12,6 @@ var actionStr = []string{
 	"solution",
 }
 
-func (a action) String() string {
+func (a Action) String() string {
 	return actionStr[a]
 }

@@ -8,10 +8,11 @@ import (
 	"net"
 	"os"
 
+	"blitzarx1/wisdom-fort/pkg/api"
 	wfErrors "blitzarx1/wisdom-fort/server/errors"
 	"blitzarx1/wisdom-fort/server/logger"
-	"blitzarx1/wisdom-fort/server/service/api"
 	"blitzarx1/wisdom-fort/server/service/challenges"
+	"blitzarx1/wisdom-fort/server/service/handlers"
 	"blitzarx1/wisdom-fort/server/service/quotes"
 	"blitzarx1/wisdom-fort/server/service/rps"
 	"blitzarx1/wisdom-fort/server/service/storage"
@@ -27,8 +28,8 @@ const (
 type App struct {
 	logger *log.Logger
 
-	apiService *api.Service
-	rpsService *rps.Service
+	handlersService *handlers.Service
+	rpsService      *rps.Service
 }
 
 func New() (*App, error) {
@@ -67,7 +68,7 @@ func (a *App) initServices() error {
 		return err
 	}
 	challengesService := challenges.New(logger.NewLogger(a.logger, "challenges"), storageService, a.rpsService)
-	a.apiService, err = api.New(
+	a.handlersService, err = handlers.New(
 		logger.NewLogger(a.logger, "service"),
 		a.rpsService,
 		storageService,
@@ -103,7 +104,7 @@ func (a *App) handleConnection(conn net.Conn) {
 		return
 	}
 
-	var req request
+	var req api.Request
 	if err := json.Unmarshal(data, &req); err != nil {
 		a.handleError(conn, nil, wfErrors.NewError(wfErrors.ErrInvalidMsgFormat, err))
 		return
@@ -124,10 +125,10 @@ func (a *App) handleConnection(conn net.Conn) {
 	var respPayload []byte
 	var handleErr *wfErrors.Error
 	switch req.Action {
-	case CHALLENGE.String():
-		respPayload, handleErr = a.apiService.GenerateChallenge(token)
-	case SOLUTION.String():
-		respPayload, handleErr = a.apiService.CheckSolution(token, req.Payload)
+	case api.CHALLENGE.String():
+		respPayload, handleErr = a.handlersService.GenerateChallenge(token)
+	case api.SOLUTION.String():
+		respPayload, handleErr = a.handlersService.CheckSolution(token, req.Payload)
 	default:
 		handleErr = wfErrors.NewError(wfErrors.ErrInvalidAction, fmt.Errorf("unknown action: %s", req.Action))
 	}
@@ -174,7 +175,7 @@ func (a *App) write(conn net.Conn, data []byte) error {
 
 // auth gates all calls and returns a token for the given request.
 // Returns error if request requires a token but none is provided.
-func (a *App) auth(ip string, req *request) (token.Token, error) {
+func (a *App) auth(ip string, req *api.Request) (token.Token, error) {
 	a.rpsService.Inc(ip)
 
 	if req.Token != nil && *req.Token != "" {
@@ -182,11 +183,11 @@ func (a *App) auth(ip string, req *request) (token.Token, error) {
 		return t, nil
 	}
 
-	if req.Action == SOLUTION.String() {
+	if req.Action == api.SOLUTION.String() {
 		return token.Token(""), errors.New("missing token")
 	}
 
-	return a.apiService.GenerateToken(ip), nil
+	return a.handlersService.GenerateToken(ip), nil
 }
 
 func (a *App) handleError(conn net.Conn, t *token.Token, err *wfErrors.Error) {
@@ -195,7 +196,7 @@ func (a *App) handleError(conn net.Conn, t *token.Token, err *wfErrors.Error) {
 }
 
 func (a *App) successResponse(token token.Token, payload []byte) []byte {
-	resp := response{
+	resp := api.Response{
 		Token:   string(token),
 		Payload: payload,
 	}
@@ -212,7 +213,7 @@ func (a *App) errorResponse(token *token.Token, err *wfErrors.Error) []byte {
 
 	errStr := err.Error()
 	codeStr := err.Code().String()
-	resp := response{
+	resp := api.Response{
 		Token:     t,
 		Error:     &errStr,
 		ErrorCode: &codeStr,

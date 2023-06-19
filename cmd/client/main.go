@@ -8,37 +8,9 @@ import (
 	"io"
 	"net"
 	"strings"
+
+	"blitzarx1/wisdom-fort/pkg/api"
 )
-
-type PayloadChallenge struct {
-	Target uint8 `json:"target"`
-}
-
-type PayloadSolution struct {
-	Solution uint64 `json:"solution"`
-}
-
-type PayloadQuote struct {
-	Quote Quote `json:"quote"`
-}
-
-type Quote struct {
-	Author string `json:"author"`
-	Quote  string `json:"quote"`
-}
-
-type Request struct {
-	Token   *string          `json:"token,omitempty"`
-	Action  string           `json:"action"`
-	Payload *json.RawMessage `json:"payload,omitempty"`
-}
-
-type Response struct {
-	Token     string           `json:"token"`
-	Payload   *json.RawMessage `json:"payload,omitempty"`
-	ErrorCode *string          `json:"error_code,omitempty"`
-	Error     *string          `json:"error,omitempty"`
-}
 
 const (
 	ServerAddr = "localhost:8080"
@@ -53,7 +25,7 @@ func main() {
 	}
 
 	// Start challenge
-	challengeRequest := Request{Action: "challenge"}
+	challengeRequest := api.Request{Action: "challenge"}
 	challengeRequestBytes, _ := json.Marshal(challengeRequest)
 	conn.Write(challengeRequestBytes)
 
@@ -61,19 +33,23 @@ func main() {
 	challengeData, _ := io.ReadAll(conn)
 	conn.Close()
 
-	var challengeResponse Response
+	var challengeResponse api.Response
 	json.Unmarshal(challengeData, &challengeResponse)
 
-	var challengePayload PayloadChallenge
-	json.Unmarshal(*challengeResponse.Payload, &challengePayload)
+	var challengePayload api.PayloadChallenge
+	json.Unmarshal(challengeResponse.Payload, &challengePayload)
 
 	// Solve challenge
 	solution := solveChallenge(challengeResponse.Token, challengePayload.Target)
 
 	// Submit solution and get quote
-	solutionPayload := PayloadSolution{Solution: solution}
+	solutionPayload := api.PayloadRequestSolution{Solution: solution}
 	solutionPayloadBytes, _ := json.Marshal(solutionPayload)
-	solutionRequest := Request{Token: &challengeResponse.Token, Action: "solution", Payload: (*json.RawMessage)(&solutionPayloadBytes)}
+	solutionRequest := api.Request{
+		Token:   &challengeResponse.Token,
+		Action:  "solution",
+		Payload: solutionPayloadBytes,
+	}
 	solutionRequestBytes, _ := json.Marshal(solutionRequest)
 
 	// Connect to the server
@@ -87,11 +63,11 @@ func main() {
 
 	// Parse solution response
 	solutionData, _ := io.ReadAll(conn)
-	var solutionResponse Response
+	var solutionResponse api.Response
 	json.Unmarshal(solutionData, &solutionResponse)
 
-	var quotePayload PayloadQuote
-	json.Unmarshal(*solutionResponse.Payload, &quotePayload)
+	var quotePayload api.PayloadResponseSolution
+	json.Unmarshal(solutionResponse.Payload, &quotePayload)
 
 	// Print quote
 	fmt.Println(quotePayload.Quote)

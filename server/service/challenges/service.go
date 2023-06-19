@@ -8,14 +8,17 @@ import (
 	"blitzarx1/wisdom-fort/server/token"
 )
 
+// TODO: extract to config/opts
+const difficultyMult uint8 = 1
+
 // Service tracks challenges for client, validates solutions and computes difficulty.
 type Service struct {
 	logger *log.Logger
 
 	storageID storage.StorageID
-	storage   *storage.Service
 
-	rpsService *rps.Service
+	storageService *storage.Service
+	rpsService     *rps.Service
 }
 
 func New(l *log.Logger, storageService *storage.Service, rpsService *rps.Service) *Service {
@@ -25,23 +28,23 @@ func New(l *log.Logger, storageService *storage.Service, rpsService *rps.Service
 		logger: l,
 
 		storageID: storageService.AddStore(),
-		storage:   storageService,
 
-		rpsService: rpsService,
+		storageService: storageService,
+		rpsService:     rpsService,
 	}
 }
 
 func (s *Service) ComputeChallenge(t token.Token) uint8 {
 	rps := s.rpsService.Get(t.IP())
 
-	diff := uint8(rps)
+	diff := uint8(rps) * difficultyMult
 
-	s.storage.Set(s.storageID, string(t), uint(diff))
+	s.storageService.Set(s.storageID, string(t), uint(diff))
 	return diff
 }
 
 func (s *Service) Challenge(key string) (uint8, error) {
-	challenge, err := s.storage.Get(s.storageID, key)
+	challenge, err := s.storageService.Get(s.storageID, key)
 	if err != nil {
 		return 0, err
 	}
@@ -55,7 +58,7 @@ func (s *Service) Challenge(key string) (uint8, error) {
 //
 // The function returns a boolean indicating whether the solution is correct, and an error if something went wrong.
 func (s *Service) CheckSolution(t token.Token, sol uint64) (bool, error) {
-	diff, err := s.storage.Get(s.storageID, string(t))
+	diff, err := s.storageService.Get(s.storageID, string(t))
 	if err != nil {
 		return false, err
 	}
@@ -67,7 +70,7 @@ func (s *Service) CheckSolution(t token.Token, sol uint64) (bool, error) {
 	isCorrect := checkHash(hash, uint8(diff))
 
 	if isCorrect {
-		s.storage.Delete(s.storageID, string(t))
+		s.storageService.Delete(s.storageID, string(t))
 	}
 
 	return isCorrect, nil

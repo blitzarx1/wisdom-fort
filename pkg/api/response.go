@@ -1,8 +1,8 @@
-package client
+package api
 
 import "encoding/json"
 
-type response struct {
+type Response struct {
 	Token     string          `json:"token"`
 	Payload   json.RawMessage `json:"payload"`
 	ErrorCode *string         `json:"error_code,omitempty"`
