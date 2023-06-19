@@ -1,8 +1,6 @@
 ## TODO
 
 Server:
-- [ ] Graceful shutdown with ctx
-- [ ] Pack logger into ctx
 - [ ] Use opts pattern for server configuring ttl for challenges, token limit per ip, port, 
 - [ ] Refactor logging maybe with ctx like tracing
 - [ ] Tests

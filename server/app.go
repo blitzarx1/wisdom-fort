@@ -1,10 +1,10 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"os"
 
@@ -23,54 +23,55 @@ const (
 	port = 8080
 
 	quotesFilePath = "server/quotes.json"
-	rpsUnauthLimit  = 1
+	rpsUnauthLimit = 1
 )
 
 type App struct {
-	logger *log.Logger
-
 	handlersService *handlers.Service
 	rpsService      *rps.Service
 }
 
-func New() (*App, error) {
-	l := logger.NewLogger(nil, "server")
+func New(ctx context.Context) (*App, error) {
+	l := logger.New(nil, "server")
 	l.Println("initializing server")
 
-	a := &App{logger: l}
-	if err := a.initServices(); err != nil {
+	a := &App{}
+	if err := a.initServices(logger.WithCtx(ctx, l, "initServices")); err != nil {
 		return nil, err
 	}
 
 	return a, nil
 }
 
-func (a *App) Run() error {
+func (a *App) Run(ctx context.Context) error {
+	l := logger.New(nil, "serverRun")
+	l.Println("running server")
 	portStr := fmt.Sprintf(":%d", port)
 	ln, err := net.Listen("tcp", portStr)
 	if err != nil {
-		a.logError(err)
+		a.logError(logger.WithCtx(ctx, l, ""), err)
 		return err
 	}
 	defer ln.Close()
 
-	return a.serve(ln)
+	return a.serve(logger.WithCtx(ctx, l, "serve"), ln)
 }
 
-func (a *App) initServices() error {
-	a.logger.Println("initializing services")
+func (a *App) initServices(ctx context.Context) error {
+	l := logger.MustFromCtx(ctx)
+	l.Println("initializing services")
 
 	var err error
 
-	storageService := storage.New(logger.NewLogger(a.logger, "storage"))
-	a.rpsService = rps.New(logger.NewLogger(a.logger, "rps"), storageService)
-	quotesService, err := quotes.New(logger.NewLogger(a.logger, "quotes"), quotesFilePath)
+	storageService := storage.New(logger.WithCtx(ctx, l, "storage"))
+	a.rpsService = rps.New(logger.WithCtx(ctx, l, "rps"), storageService)
+	quotesService, err := quotes.New(logger.WithCtx(ctx, l, "quotes"), quotesFilePath)
 	if err != nil {
 		return err
 	}
-	challengesService := challenges.New(logger.NewLogger(a.logger, "challenges"), storageService, a.rpsService)
+	challengesService := challenges.New(logger.WithCtx(ctx, l, "challenges"), storageService, a.rpsService)
 	a.handlersService, err = handlers.New(
-		logger.NewLogger(a.logger, "service"),
+		logger.WithCtx(ctx, l, "service"),
 		a.rpsService,
 		storageService,
 		quotesService,
@@ -83,8 +84,9 @@ func (a *App) initServices() error {
 	return nil
 }
 
-func (a *App) serve(ln net.Listener) error {
-	a.logger.Println("server is listening on ", port)
+func (a *App) serve(ctx context.Context, ln net.Listener) error {
+	l := logger.MustFromCtx(ctx)
+	l.Println("server is listening on ", port)
 
 	for {
 		conn, err := ln.Accept()
@@ -92,79 +94,84 @@ func (a *App) serve(ln net.Listener) error {
 			return err
 		}
 
-		go a.handleConnection(conn)
+		go a.handleConnection(logger.WithCtx(ctx, l, "handleConnection"), conn)
 	}
 }
 
-func (a *App) handleConnection(conn net.Conn) {
+func (a *App) handleConnection(ctx context.Context, conn net.Conn) {
 	defer conn.Close()
 
-	data, err := a.read(conn)
+	l := logger.MustFromCtx(ctx)
+
+	data, err := a.read(logger.WithCtx(ctx, l, "read"), conn)
 	if err != nil {
-		a.handleError(conn, nil, wfErrors.NewError(wfErrors.ErrGeneric, err))
+		a.handleError(logger.WithCtx(ctx, l, ""), conn, nil, wfErrors.NewError(wfErrors.ErrGeneric, err))
 		return
 	}
 
 	var req api.Request
 	if err := json.Unmarshal(data, &req); err != nil {
-		a.handleError(conn, nil, wfErrors.NewError(wfErrors.ErrInvalidMsgFormat, err))
+		a.handleError(logger.WithCtx(ctx, l, ""), conn, nil, wfErrors.NewError(wfErrors.ErrInvalidMsgFormat, err))
 		return
 	}
 
 	clientAddr, ok := conn.RemoteAddr().(*net.TCPAddr)
 	if !ok {
-		a.handleError(conn, nil, wfErrors.NewError(wfErrors.ErrGeneric, fmt.Errorf("failed to get client addr: %s", clientAddr)))
+		a.handleError(logger.WithCtx(ctx, l, ""), conn, nil, wfErrors.NewError(wfErrors.ErrGeneric, fmt.Errorf("failed to get client addr: %s", clientAddr)))
 	}
 
 	ip := clientAddr.IP.String()
 	token, authErr := a.auth(ip, &req)
 	if authErr != nil {
-		a.handleError(conn, nil, authErr)
+		a.handleError(logger.WithCtx(ctx, l, ""), conn, nil, authErr)
 		return
 	}
+
+	tokenLogger := logger.New(l, string(token))
 
 	var respPayload []byte
 	var handleErr *wfErrors.Error
 	switch req.Action {
 	case api.ActionChallenge:
-		respPayload, handleErr = a.handlersService.GenerateChallenge(token)
+		respPayload, handleErr = a.handlersService.GenerateChallenge(logger.WithCtx(ctx, tokenLogger, "genChallenge"), token)
 	case api.ActionSolution:
-		respPayload, handleErr = a.handlersService.CheckSolution(token, req.Payload)
+		respPayload, handleErr = a.handlersService.CheckSolution(logger.WithCtx(ctx, tokenLogger, "checkSolution"), token, req.Payload)
 	default:
 		handleErr = wfErrors.NewError(wfErrors.ErrInvalidAction, fmt.Errorf("unknown action: %s", req.Action))
 	}
 	if handleErr != nil {
-		a.handleError(conn, &token, handleErr)
+		a.handleError(logger.WithCtx(ctx, tokenLogger, ""), conn, &token, handleErr)
 		return
 	}
 
-	if err := a.write(conn, a.successResponse(token, respPayload)); err != nil {
-		a.logError(err)
+	if err := a.write(logger.WithCtx(ctx, l, "write"), conn, a.successResponse(token, respPayload)); err != nil {
+		a.logError(logger.WithCtx(ctx, tokenLogger, ""), err)
 		return
 	}
 }
 
-func (a *App) logError(err error) {
-	a.logger.SetOutput(os.Stderr)
-	defer a.logger.SetOutput(os.Stdout)
+func (a *App) logError(ctx context.Context, err error) {
+	l := logger.MustFromCtx(ctx)
+	l.SetOutput(os.Stderr)
+	defer l.SetOutput(os.Stdout)
 
-	a.logger.Println(err.Error())
+	l.Println(err.Error())
 }
 
-func (a *App) read(conn net.Conn) ([]byte, error) {
+func (a *App) read(ctx context.Context, conn net.Conn) ([]byte, error) {
 	buffer := make([]byte, 1024)
 	n, err := conn.Read(buffer)
 	if err != nil {
 		return nil, err
 	}
 
-	a.logger.Println("read data: ", string(buffer[:n]))
+	logger.MustFromCtx(ctx).Println("read data: ", string(buffer[:n]))
 
 	return buffer[:n], nil
 }
 
-func (a *App) write(conn net.Conn, data []byte) error {
-	a.logger.Println("writing data: ", string(data))
+func (a *App) write(ctx context.Context, conn net.Conn, data []byte) error {
+	logger.MustFromCtx(ctx).Println("writing data: ", string(data))
 
 	_, err := conn.Write(data)
 	if err != nil {
@@ -205,9 +212,10 @@ func (a *App) auth(ip string, req *api.Request) (token.Token, *wfErrors.Error) {
 	return a.handlersService.GenerateToken(ip), nil
 }
 
-func (a *App) handleError(conn net.Conn, t *token.Token, err *wfErrors.Error) {
-	a.logError(err)
-	a.write(conn, a.errorResponse(t, err))
+func (a *App) handleError(ctx context.Context, conn net.Conn, t *token.Token, err *wfErrors.Error) {
+	l := logger.MustFromCtx(ctx)
+	a.logError(logger.WithCtx(ctx, l, ""), err)
+	a.write(logger.WithCtx(ctx, l, "write"), conn, a.errorResponse(t, err))
 }
 
 func (a *App) successResponse(token token.Token, payload []byte) []byte {

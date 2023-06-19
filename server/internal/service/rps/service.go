@@ -1,28 +1,26 @@
 package rps
 
 import (
-	"log"
+	"context"
 	"time"
 
+	"blitzarx1/wisdom-fort/server/internal/logger"
 	"blitzarx1/wisdom-fort/server/internal/service/storage"
 )
 
 // Service tracks rps per ip.
 type Service struct {
-	logger *log.Logger
-
 	storageID storage.StorageID
 	storage   *storage.Service
 }
 
-func New(l *log.Logger, s *storage.Service) *Service {
+func New(ctx context.Context, s *storage.Service) *Service {
+	l := logger.MustFromCtx(ctx)
 	l.Println("initializing rps service")
 
-	storageID := s.AddStorageWithTTL(time.Second)
+	storageID := s.AddStorageWithTTL(logger.WithCtx(ctx, l, "addStorage"), time.Second)
 
 	return &Service{
-		logger: l,
-
 		storageID: storageID,
 		storage:   s,
 	}

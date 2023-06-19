@@ -1,10 +1,10 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 
 	"blitzarx1/wisdom-fort/pkg/api"
 	wfErrors "blitzarx1/wisdom-fort/server/internal/errors"
@@ -20,25 +20,21 @@ import (
 // It defines the difficulty of the challenge for given client and
 // check correctness of the results.
 type Service struct {
-	logger *log.Logger
-
 	quotesService     *quotes.Service
 	rpsService        *rps.Service
 	challengesService *challenges.Service
 }
 
 func New(
-	l *log.Logger,
+	ctx context.Context,
 	rpsService *rps.Service,
 	storageService *storage.Service,
 	quotesService *quotes.Service,
 	challengesService *challenges.Service,
 ) (*Service, error) {
-	l.Println("initializing service")
+	logger.MustFromCtx(ctx).Println("initializing service")
 
 	return &Service{
-		logger: l,
-
 		quotesService:     quotesService,
 		challengesService: challengesService,
 		rpsService:        rpsService,
@@ -50,9 +46,9 @@ func (s *Service) GenerateToken(ip string) token.Token {
 }
 
 // GenerateChallenge generates a challenge for the given token.
-func (s *Service) GenerateChallenge(t token.Token) ([]byte, *wfErrors.Error) {
-	reqLogger := logger.NewLogger(s.logger, string(t))
-	reqLogger.Println("handling challenge request")
+func (s *Service) GenerateChallenge(ctx context.Context, t token.Token) ([]byte, *wfErrors.Error) {
+	l := logger.MustFromCtx(ctx)
+	l.Println("handling challenge request")
 
 	var diff uint8
 	var err error
@@ -71,9 +67,9 @@ func (s *Service) GenerateChallenge(t token.Token) ([]byte, *wfErrors.Error) {
 }
 
 // CheckSolution checks correctness of the solution for the given token.
-func (s *Service) CheckSolution(t token.Token, payload []byte) ([]byte, *wfErrors.Error) {
-	reqLogger := logger.NewLogger(s.logger, string(t))
-	reqLogger.Println("handling solution request")
+func (s *Service) CheckSolution(ctx context.Context, t token.Token, payload []byte) ([]byte, *wfErrors.Error) {
+	l := logger.MustFromCtx(ctx)
+	l.Println("handling solution request")
 
 	if payload == nil {
 		return nil, wfErrors.NewError(wfErrors.ErrInvalidPayloadFormat, errors.New("empty payload"))

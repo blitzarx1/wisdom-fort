@@ -1,8 +1,10 @@
 package storage
 
 import (
-	"log"
+	"context"
 	"time"
+
+	"blitzarx1/wisdom-fort/server/internal/logger"
 )
 
 type entry struct {
@@ -22,19 +24,17 @@ type StorageID int
 // switch the storage provider without having to change the service. It can be usefull
 // when we need out service to scale and we need to use a storage like Redis.
 type Service struct {
-	logger *log.Logger
-
 	stores []keyvalStore
 
 	withTTL    map[StorageID]time.Duration
 	expiration map[time.Time]entry
 }
 
-func New(logger *log.Logger) *Service {
-	logger.Println("initializing storage service")
+func New(ctx context.Context) *Service {
+	l := logger.MustFromCtx(ctx)
+	l.Println("initializing storage service")
 
 	s := &Service{
-		logger:     logger,
 		stores:     make([]keyvalStore, 0),
 		withTTL:    make(map[StorageID]time.Duration),
 		expiration: make(map[time.Time]entry),
@@ -44,11 +44,15 @@ func New(logger *log.Logger) *Service {
 	go func() {
 		ticker := time.NewTicker(time.Second)
 		for {
-			<-ticker.C
-			for t, e := range s.expiration {
-				if time.Now().After(t) {
-					s.Delete(e.id, e.key)
-					delete(s.expiration, t)
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				for t, e := range s.expiration {
+					if time.Now().After(t) {
+						s.Delete(e.id, e.key)
+						delete(s.expiration, t)
+					}
 				}
 			}
 		}
@@ -57,14 +61,8 @@ func New(logger *log.Logger) *Service {
 	return s
 }
 
-func (s *Service) AddStorage() StorageID {
-	s.logger.Println("adding new storage")
-
-	return s.addStore()
-}
-
-func (s *Service) AddStorageWithTTL(ttl time.Duration) StorageID {
-	s.logger.Println("adding new storage with ttl")
+func (s *Service) AddStorageWithTTL(ctx context.Context, ttl time.Duration) StorageID {
+	logger.MustFromCtx(ctx).Println("adding new storage with ttl")
 
 	id := s.addStore()
 	s.withTTL[id] = ttl

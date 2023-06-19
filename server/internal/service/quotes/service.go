@@ -1,31 +1,33 @@
 package quotes
 
 import (
-	"blitzarx1/wisdom-fort/pkg/api"
+	"context"
 	"encoding/json"
 	"errors"
-	"log"
 	"math/rand"
 	"os"
+
+	"blitzarx1/wisdom-fort/pkg/api"
+	"blitzarx1/wisdom-fort/server/internal/logger"
 )
 
 // Service manages the set of available quotes.
 type Service struct {
-	logger *log.Logger
 	quotes []api.Quote
 }
 
-func New(logger *log.Logger, quotesFilePath string) (*Service, error) {
-	logger.Println("initializing quotes service")
+func New(ctx context.Context, quotesFilePath string) (*Service, error) {
+	l := logger.MustFromCtx(ctx)
+	l.Println("initializing quotes service")
 
 	data, err := os.ReadFile(quotesFilePath)
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Println("reading quotes")
+	l.Println("reading quotes")
 
-	s := &Service{logger: logger}
+	s := &Service{}
 	if err := json.Unmarshal(data, &s.quotes); err != nil {
 		return nil, err
 	}
@@ -34,7 +36,7 @@ func New(logger *log.Logger, quotesFilePath string) (*Service, error) {
 		return nil, errors.New("no quotes found")
 	}
 
-	logger.Printf("read %d quotes\n", len(s.quotes))
+	l.Printf("read %d quotes\n", len(s.quotes))
 
 	return s, nil
 }

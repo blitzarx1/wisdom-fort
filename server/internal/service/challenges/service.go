@@ -1,9 +1,10 @@
 package challenges
 
 import (
-	"log"
+	"context"
 	"time"
 
+	"blitzarx1/wisdom-fort/server/internal/logger"
 	"blitzarx1/wisdom-fort/server/internal/service/rps"
 	"blitzarx1/wisdom-fort/server/internal/service/storage"
 	"blitzarx1/wisdom-fort/server/internal/token"
@@ -18,21 +19,18 @@ const (
 // Service tracks challenges for client, validates solutions and computes difficulty.
 // Challenge has a ttl afteer which it expires.
 type Service struct {
-	logger *log.Logger
-
 	storageID storage.StorageID
 
 	storageService *storage.Service
 	rpsService     *rps.Service
 }
 
-func New(l *log.Logger, storageService *storage.Service, rpsService *rps.Service) *Service {
+func New(ctx context.Context, storageService *storage.Service, rpsService *rps.Service) *Service {
+	l := logger.MustFromCtx(ctx)
 	l.Println("initializing challenges service")
 
 	return &Service{
-		logger: l,
-
-		storageID: storageService.AddStorageWithTTL(challengeTTL),
+		storageID: storageService.AddStorageWithTTL(logger.WithCtx(ctx, l, "addStorage"), challengeTTL),
 
 		storageService: storageService,
 		rpsService:     rpsService,
