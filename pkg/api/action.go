@@ -3,8 +3,8 @@ package api
 type Action uint
 
 const (
-	CHALLENGE Action = iota
-	SOLUTION
+	ActionChallenge Action = iota
+	ActionSolution
 )
 
 var actionStr = []string{

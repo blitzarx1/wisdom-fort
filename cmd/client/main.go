@@ -25,7 +25,7 @@ func main() {
 	}
 
 	// Start challenge
-	challengeRequest := api.Request{Action: "challenge"}
+	challengeRequest := api.Request{Action: api.ActionChallenge}
 	challengeRequestBytes, _ := json.Marshal(challengeRequest)
 	conn.Write(challengeRequestBytes)
 
@@ -47,7 +47,7 @@ func main() {
 	solutionPayloadBytes, _ := json.Marshal(solutionPayload)
 	solutionRequest := api.Request{
 		Token:   &challengeResponse.Token,
-		Action:  "solution",
+		Action:  api.ActionSolution,
 		Payload: solutionPayloadBytes,
 	}
 	solutionRequestBytes, _ := json.Marshal(solutionRequest)

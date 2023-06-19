@@ -125,9 +125,9 @@ func (a *App) handleConnection(conn net.Conn) {
 	var respPayload []byte
 	var handleErr *wfErrors.Error
 	switch req.Action {
-	case api.CHALLENGE.String():
+	case api.ActionChallenge:
 		respPayload, handleErr = a.handlersService.GenerateChallenge(token)
-	case api.SOLUTION.String():
+	case api.ActionSolution:
 		respPayload, handleErr = a.handlersService.CheckSolution(token, req.Payload)
 	default:
 		handleErr = wfErrors.NewError(wfErrors.ErrInvalidAction, fmt.Errorf("unknown action: %s", req.Action))
@@ -183,7 +183,7 @@ func (a *App) auth(ip string, req *api.Request) (token.Token, error) {
 		return t, nil
 	}
 
-	if req.Action == api.SOLUTION.String() {
+	if req.Action == api.ActionSolution {
 		return token.Token(""), errors.New("missing token")
 	}
 

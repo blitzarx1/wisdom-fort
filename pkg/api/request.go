@@ -6,6 +6,6 @@ import (
 
 type Request struct {
 	Token   *string         `json:"token"`
-	Action  string          `json:"action"`
+	Action  Action          `json:"action"`
 	Payload json.RawMessage `json:"payload"`
 }
