@@ -2,7 +2,6 @@
 
 Server:
 - [ ] Use opts pattern for server configuring ttl for challenges, token limit per ip, port, 
-- [ ] Refactor logging maybe with ctx like tracing
 - [ ] Tests
 
 Client:
