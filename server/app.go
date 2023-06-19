@@ -9,14 +9,14 @@ import (
 	"os"
 
 	"blitzarx1/wisdom-fort/pkg/api"
-	wfErrors "blitzarx1/wisdom-fort/server/errors"
-	"blitzarx1/wisdom-fort/server/logger"
-	"blitzarx1/wisdom-fort/server/service/challenges"
-	"blitzarx1/wisdom-fort/server/service/handlers"
-	"blitzarx1/wisdom-fort/server/service/quotes"
-	"blitzarx1/wisdom-fort/server/service/rps"
-	"blitzarx1/wisdom-fort/server/service/storage"
-	"blitzarx1/wisdom-fort/server/token"
+	wfErrors "blitzarx1/wisdom-fort/server/internal/errors"
+	"blitzarx1/wisdom-fort/server/internal/logger"
+	"blitzarx1/wisdom-fort/server/internal/service/challenges"
+	"blitzarx1/wisdom-fort/server/internal/service/handlers"
+	"blitzarx1/wisdom-fort/server/internal/service/quotes"
+	"blitzarx1/wisdom-fort/server/internal/service/rps"
+	"blitzarx1/wisdom-fort/server/internal/service/storage"
+	"blitzarx1/wisdom-fort/server/internal/token"
 )
 
 const (

@@ -3,9 +3,9 @@ package challenges
 import (
 	"log"
 
-	"blitzarx1/wisdom-fort/server/service/rps"
-	"blitzarx1/wisdom-fort/server/service/storage"
-	"blitzarx1/wisdom-fort/server/token"
+	"blitzarx1/wisdom-fort/server/internal/service/rps"
+	"blitzarx1/wisdom-fort/server/internal/service/storage"
+	"blitzarx1/wisdom-fort/server/internal/token"
 )
 
 // TODO: extract to config/opts

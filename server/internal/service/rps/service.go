@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	"blitzarx1/wisdom-fort/server/service/storage"
+	"blitzarx1/wisdom-fort/server/internal/service/storage"
 )
 
 // Service tracks rps per ip.
