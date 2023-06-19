@@ -13,7 +13,7 @@ type key string
 const keyLogger key = "logger"
 
 const (
-	logFlags = log.Ldate | log.Ltime | log.Lmsgprefix
+	logFlags = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lmsgprefix
 
 	prefixEnd       = ": "
 	separatorLogger = "->"
