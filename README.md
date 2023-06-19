@@ -1,3 +1,17 @@
+## TODO
+
+Server:
+- [ ] Limit number of tokens per ip, to prevent exploting the system by not providing token to challenge request and getting new token => lowest difficulty
+- [ ] Implement ttl for challenges. Clear them after some time. And incr token limit per ip. Add ttl to challenge response contract.
+- [ ] Use opts pattern for server configuring ttl for challenges, token limit per ip, port, 
+- [ ] Graceful shutdown with ctx
+- [ ] Pack logger into ctx
+- [ ] Refactor logging maybe with ctx like tracing
+- [ ] Tests
+
+Client:
+- [ ] Extract client from main
+
 # Wisdom-Fort
 
 Wisdom-Fort is a TCP server that utilizes Proof of Work (PoW) challenges as a shield against DDoS attacks. It serves insightful quotes to clients, but only after they have successfully solved a PoW challenge. This project is designed to balance server-side protection mechanisms with a rewarding client-side experience
@@ -57,15 +71,3 @@ To run tests, use the go test command:
 ```sh
 go test ./...
 ```
-
-## TODO
-
-Server:
-- [ ] Limit number of tokens per ip, to prevent exploting the system by not providing token to challenge request and getting new token => lowest difficulty
-- [ ] Implement ttl for challenges. Clear them after some time. And incr token limit per ip.
-- [ ] Graceful shutdown with ctx
-- [ ] Refactor logging maybe with ctx like tracing
-- [ ] Tests
-
-Client:
-- [ ] Extract client from main
