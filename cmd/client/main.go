@@ -36,7 +36,7 @@ func main() {
 	var challengeResponse api.Response
 	json.Unmarshal(challengeData, &challengeResponse)
 
-	var challengePayload api.PayloadChallenge
+	var challengePayload api.PayloadResponseChallenge
 	json.Unmarshal(challengeResponse.Payload, &challengePayload)
 
 	// Solve challenge

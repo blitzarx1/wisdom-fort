@@ -61,7 +61,7 @@ func (s *Service) GenerateChallenge(t token.Token) ([]byte, *wfErrors.Error) {
 		diff = s.challengesService.ComputeChallenge(t)
 	}
 
-	payload := api.PayloadChallenge{Target: diff}
+	payload := api.PayloadResponseChallenge{Target: diff}
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return nil, wfErrors.NewError(wfErrors.ErrGeneric, err)

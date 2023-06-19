@@ -8,6 +8,6 @@ type PayloadResponseSolution struct {
 	Quote Quote `json:"quote"`
 }
 
-type PayloadChallenge struct {
+type PayloadResponseChallenge struct {
 	Target uint8 `json:"target"`
 }
