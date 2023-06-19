@@ -23,6 +23,7 @@ const (
 	port = 8080
 
 	quotesFilePath = "server/quotes.json"
+	rpsUnauthLimit  = 1
 )
 
 type App struct {
@@ -116,9 +117,9 @@ func (a *App) handleConnection(conn net.Conn) {
 	}
 
 	ip := clientAddr.IP.String()
-	token, err := a.auth(ip, &req)
-	if err != nil {
-		a.handleError(conn, nil, wfErrors.NewError(wfErrors.ErrMissingToken, err))
+	token, authErr := a.auth(ip, &req)
+	if authErr != nil {
+		a.handleError(conn, nil, authErr)
 		return
 	}
 
@@ -173,9 +174,19 @@ func (a *App) write(conn net.Conn, data []byte) error {
 	return nil
 }
 
+func (a *App) rpsUnauthorizedGuard(ip string) *wfErrors.Error {
+	rps := a.rpsService.Get(ip)
+	if rps > rpsUnauthLimit {
+		return wfErrors.NewError(wfErrors.ErrTooManyRequests, errors.New("too many requests"))
+	}
+
+	return nil
+}
+
 // auth gates all calls and returns a token for the given request.
-// Returns error if request requires a token but none is provided.
-func (a *App) auth(ip string, req *api.Request) (token.Token, error) {
+// Returns error if unauthorized request requires a token but none is provided or if it exceedes
+// rps limit for unauthorized requests.
+func (a *App) auth(ip string, req *api.Request) (token.Token, *wfErrors.Error) {
 	a.rpsService.Inc(ip)
 
 	if req.Token != nil && *req.Token != "" {
@@ -184,7 +195,11 @@ func (a *App) auth(ip string, req *api.Request) (token.Token, error) {
 	}
 
 	if req.Action == api.ActionSolution {
-		return token.Token(""), errors.New("missing token")
+		return token.Token(""), wfErrors.NewError(wfErrors.ErrMissingToken, errors.New("action requires a token"))
+	}
+
+	if err := a.rpsUnauthorizedGuard(ip); err != nil {
+		return token.Token(""), err
 	}
 
 	return a.handlersService.GenerateToken(ip), nil

@@ -5,8 +5,8 @@ package storage
 // easily swap out the storage implementation without having to change the
 // service. It can be used for usage with storage liked Redis for scalability.
 type keyvalStore interface {
-	Set(key string, value uint) error
-	Delete(key string) error
+	Set(key string, value uint)
+	Delete(key string)
 	Get(key string) (uint, error)
 	Increment(key string)
 }

@@ -1,6 +1,14 @@
 package storage
 
-import "log"
+import (
+	"log"
+	"time"
+)
+
+type entry struct {
+	id  StorageID
+	key string
+}
 
 type StorageID int
 
@@ -17,40 +25,76 @@ type Service struct {
 	logger *log.Logger
 
 	stores []keyvalStore
+
+	withTTL    map[StorageID]time.Duration
+	expiration map[time.Time]entry
 }
 
 func New(logger *log.Logger) *Service {
 	logger.Println("initializing storage service")
 
-	return &Service{
-		logger: logger,
-		stores: make([]keyvalStore, 0),
+	s := &Service{
+		logger:     logger,
+		stores:     make([]keyvalStore, 0),
+		withTTL:    make(map[StorageID]time.Duration),
+		expiration: make(map[time.Time]entry),
 	}
+
+	// clear expired keys with check interval of 1 second.
+	go func() {
+		ticker := time.NewTicker(time.Second)
+		for {
+			<-ticker.C
+			for t, e := range s.expiration {
+				if time.Now().After(t) {
+					s.Delete(e.id, e.key)
+					delete(s.expiration, t)
+				}
+			}
+		}
+	}()
+
+	return s
 }
 
-func (s *Service) AddStore() StorageID {
+func (s *Service) AddStorage() StorageID {
 	s.logger.Println("adding new storage")
 
-	s.stores = append(s.stores, newStorage())
-	return StorageID(len(s.stores) - 1)
+	return s.addStore()
 }
 
-func (s *Service) Set(id StorageID, key string, value uint) error {
-	return s.stores[id].Set(key, value)
+func (s *Service) AddStorageWithTTL(ttl time.Duration) StorageID {
+	s.logger.Println("adding new storage with ttl")
+
+	id := s.addStore()
+	s.withTTL[id] = ttl
+
+	return id
+}
+
+func (s *Service) Set(id StorageID, key string, value uint) {
+	if ttl, ok := s.withTTL[id]; ok {
+		s.expiration[time.Now().Add(ttl)] = entry{id: id, key: key}
+	}
+	s.stores[id].Set(key, value)
+}
+
+func (s *Service) Increment(id StorageID, key string) {
+	if ttl, ok := s.withTTL[id]; ok {
+		s.expiration[time.Now().Add(ttl)] = entry{id: id, key: key}
+	}
+	s.stores[id].Increment(key)
 }
 
 func (s *Service) Get(id StorageID, key string) (uint, error) {
 	return s.stores[id].Get(key)
 }
 
-func (s *Service) Delete(id StorageID, key string) error {
-	return s.stores[id].Delete(key)
+func (s *Service) Delete(id StorageID, key string) {
+	s.stores[id].Delete(key)
 }
 
-func (s *Service) Increment(id StorageID, key string) {
-	s.stores[id].Increment(key)
-}
-
-func (s *Service) Clear(id StorageID) {
-	s.stores[id] = newStorage()
+func (s *Service) addStore() StorageID {
+	s.stores = append(s.stores, newStorage())
+	return StorageID(len(s.stores) - 1)
 }

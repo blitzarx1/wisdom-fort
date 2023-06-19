@@ -13,6 +13,7 @@ const (
 	ErrInvalidSolution
 	ErrNoActiveChallenge
 	ErrMissingToken
+	ErrTooManyRequests
 )
 
 var codeStr = []string{
@@ -24,6 +25,7 @@ var codeStr = []string{
 	ErrInvalidSolution:          "ErrInvalidSolution",
 	ErrNoActiveChallenge:        "ErrNoActiveChallenge",
 	ErrMissingToken:             "ErrMissingToken",
+	ErrTooManyRequests:          "ErrTooManyRequests",
 }
 
 var msg = map[ErrorCode]string{
@@ -35,6 +37,7 @@ var msg = map[ErrorCode]string{
 	ErrInvalidSolution:          "solution is invalid",
 	ErrNoActiveChallenge:        "no active challenge for token",
 	ErrMissingToken:             "missing token",
+	ErrTooManyRequests:          "too many unauthorized requests",
 }
 
 func (ec ErrorCode) String() string {

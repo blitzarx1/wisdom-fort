@@ -16,20 +16,18 @@ func newStorage() *storage {
 	}
 }
 
-func (s *storage) Set(key string, value uint) error {
+func (s *storage) Set(key string, value uint) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	s.data[key] = value
-	return nil
 }
 
-func (s *storage) Delete(key string) error {
+func (s *storage) Delete(key string) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	delete(s.data, key)
-	return nil
 }
 
 func (s *storage) Get(key string) (uint, error) {

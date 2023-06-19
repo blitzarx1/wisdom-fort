@@ -18,16 +18,7 @@ type Service struct {
 func New(l *log.Logger, s *storage.Service) *Service {
 	l.Println("initializing rps service")
 
-	storageID := s.AddStore()
-
-	// reset rps every second.
-	go func() {
-		ticker := time.NewTicker(time.Second)
-		for {
-			<-ticker.C
-			s.Clear(storageID)
-		}
-	}()
+	storageID := s.AddStorageWithTTL(time.Second)
 
 	return &Service{
 		logger: l,

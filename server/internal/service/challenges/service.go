@@ -2,6 +2,7 @@ package challenges
 
 import (
 	"log"
+	"time"
 
 	"blitzarx1/wisdom-fort/server/internal/service/rps"
 	"blitzarx1/wisdom-fort/server/internal/service/storage"
@@ -9,9 +10,13 @@ import (
 )
 
 // TODO: extract to config/opts
-const difficultyMult uint8 = 1
+const (
+	difficultyMult uint8 = 1
+	challengeTTL         = 5 * time.Second
+)
 
 // Service tracks challenges for client, validates solutions and computes difficulty.
+// Challenge has a ttl afteer which it expires.
 type Service struct {
 	logger *log.Logger
 
@@ -27,7 +32,7 @@ func New(l *log.Logger, storageService *storage.Service, rpsService *rps.Service
 	return &Service{
 		logger: l,
 
-		storageID: storageService.AddStore(),
+		storageID: storageService.AddStorageWithTTL(challengeTTL),
 
 		storageService: storageService,
 		rpsService:     rpsService,
