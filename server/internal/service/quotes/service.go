@@ -7,8 +7,8 @@ import (
 	"math/rand"
 	"os"
 
+	"blitzarx1/wisdom-fort/pkg/logger"
 	"blitzarx1/wisdom-fort/pkg/scheme"
-	"blitzarx1/wisdom-fort/server/internal/logger"
 )
 
 // Service manages the set of available quotes.

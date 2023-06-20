@@ -2,6 +2,7 @@ package logger
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -50,4 +51,15 @@ func MustFromCtx(ctx context.Context) *log.Logger {
 	}
 
 	return l
+}
+
+// FromCtx unpacks Logger from the provided context. Returns error if Logger is not present
+// in the context.
+func FromCtx(ctx context.Context) (*log.Logger, error) {
+	l, ok := ctx.Value(keyLogger).(*log.Logger)
+	if !ok {
+		return nil, errors.New("logger is not present in the context")
+	}
+
+	return l, nil
 }

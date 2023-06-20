@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"blitzarx1/wisdom-fort/server/internal/logger"
+	"blitzarx1/wisdom-fort/pkg/logger"
 )
 
 type entry struct {

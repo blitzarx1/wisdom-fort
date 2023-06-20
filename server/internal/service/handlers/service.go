@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
+	"blitzarx1/wisdom-fort/pkg/logger"
 	"blitzarx1/wisdom-fort/pkg/scheme"
 	wfErrors "blitzarx1/wisdom-fort/server/internal/errors"
-	"blitzarx1/wisdom-fort/server/internal/logger"
 	"blitzarx1/wisdom-fort/server/internal/service/challenges"
 	"blitzarx1/wisdom-fort/server/internal/service/quotes"
 	"blitzarx1/wisdom-fort/server/internal/service/rps"

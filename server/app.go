@@ -8,9 +8,9 @@ import (
 	"net"
 	"os"
 
+	"blitzarx1/wisdom-fort/pkg/logger"
 	"blitzarx1/wisdom-fort/pkg/scheme"
 	wfErrors "blitzarx1/wisdom-fort/server/internal/errors"
-	"blitzarx1/wisdom-fort/server/internal/logger"
 	"blitzarx1/wisdom-fort/server/internal/service/challenges"
 	"blitzarx1/wisdom-fort/server/internal/service/handlers"
 	"blitzarx1/wisdom-fort/server/internal/service/quotes"
@@ -28,7 +28,11 @@ type App struct {
 }
 
 func New(ctx context.Context, cfg *Config) (*App, error) {
-	l := logger.New(nil, "server")
+	l, err := logger.FromCtx(ctx)
+	if err != nil {
+		l = logger.New(nil, "serverNew")
+	}
+
 	l.Println("initializing server")
 
 	a := &App{cfg: cfg}
@@ -40,8 +44,13 @@ func New(ctx context.Context, cfg *Config) (*App, error) {
 }
 
 func (a *App) Run(ctx context.Context) error {
-	l := logger.New(nil, "serverRun")
+	l, err := logger.FromCtx(ctx)
+	if err != nil {
+		l = logger.New(nil, "serverRun")
+	}
+
 	l.Println("running server")
+
 	portStr := fmt.Sprintf(":%d", a.cfg.Port)
 	ln, err := net.Listen("tcp", portStr)
 	if err != nil {

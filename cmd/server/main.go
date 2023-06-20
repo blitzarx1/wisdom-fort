@@ -2,21 +2,26 @@ package main
 
 import (
 	"context"
-	"log"
 
+	"blitzarx1/wisdom-fort/pkg/logger"
 	"blitzarx1/wisdom-fort/server"
 )
 
 func main() {
+	l := logger.New(nil, "main")
+	l.Println("initializing server")
+
 	cfg, err := server.NewConfigFromEnv()
 	if err != nil {
-		log.Fatal(err)
+		l.Fatal(err)
 	}
 
-	srv, err := server.New(context.Background(), cfg)
+	ctx := context.Background()
+
+	srv, err := server.New(logger.WithCtx(ctx, l, "serverNew"), cfg)
 	if err != nil {
-		log.Fatal(err)
+		l.Fatal(err)
 	}
 
-	srv.Run(context.Background())
+	srv.Run(logger.WithCtx(ctx, l, "serverRun"))
 }
