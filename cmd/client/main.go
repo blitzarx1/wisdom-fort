@@ -9,7 +9,7 @@ import (
 	"net"
 	"strings"
 
-	"blitzarx1/wisdom-fort/pkg/api"
+	"blitzarx1/wisdom-fort/pkg/scheme"
 )
 
 const (
@@ -25,7 +25,7 @@ func main() {
 	}
 
 	// Start challenge
-	challengeRequest := api.Request{Action: api.ActionChallenge}
+	challengeRequest := scheme.Request{Action: scheme.ActionChallenge}
 	challengeRequestBytes, _ := json.Marshal(challengeRequest)
 	conn.Write(challengeRequestBytes)
 
@@ -33,21 +33,21 @@ func main() {
 	challengeData, _ := io.ReadAll(conn)
 	conn.Close()
 
-	var challengeResponse api.Response
+	var challengeResponse scheme.Response
 	json.Unmarshal(challengeData, &challengeResponse)
 
-	var challengePayload api.PayloadResponseChallenge
+	var challengePayload scheme.PayloadResponseChallenge
 	json.Unmarshal(challengeResponse.Payload, &challengePayload)
 
 	// Solve challenge
 	solution := solveChallenge(challengeResponse.Token, challengePayload.Target)
 
 	// Submit solution and get quote
-	solutionPayload := api.PayloadRequestSolution{Solution: solution}
+	solutionPayload := scheme.PayloadRequestSolution{Solution: solution}
 	solutionPayloadBytes, _ := json.Marshal(solutionPayload)
-	solutionRequest := api.Request{
+	solutionRequest := scheme.Request{
 		Token:   &challengeResponse.Token,
-		Action:  api.ActionSolution,
+		Action:  scheme.ActionSolution,
 		Payload: solutionPayloadBytes,
 	}
 	solutionRequestBytes, _ := json.Marshal(solutionRequest)
@@ -63,10 +63,10 @@ func main() {
 
 	// Parse solution response
 	solutionData, _ := io.ReadAll(conn)
-	var solutionResponse api.Response
+	var solutionResponse scheme.Response
 	json.Unmarshal(solutionData, &solutionResponse)
 
-	var quotePayload api.PayloadResponseSolution
+	var quotePayload scheme.PayloadResponseSolution
 	json.Unmarshal(solutionResponse.Payload, &quotePayload)
 
 	// Print quote

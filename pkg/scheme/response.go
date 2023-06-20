@@ -1,4 +1,4 @@
-package api
+package scheme
 
 import "encoding/json"
 

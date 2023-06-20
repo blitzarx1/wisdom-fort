@@ -8,7 +8,7 @@ import (
 	"net"
 	"os"
 
-	"blitzarx1/wisdom-fort/pkg/api"
+	"blitzarx1/wisdom-fort/pkg/scheme"
 	wfErrors "blitzarx1/wisdom-fort/server/internal/errors"
 	"blitzarx1/wisdom-fort/server/internal/logger"
 	"blitzarx1/wisdom-fort/server/internal/service/challenges"
@@ -111,7 +111,7 @@ func (a *App) handleConnection(ctx context.Context, conn net.Conn) {
 		return
 	}
 
-	var req api.Request
+	var req scheme.Request
 	if err := json.Unmarshal(data, &req); err != nil {
 		a.handleError(logger.WithCtx(ctx, l, ""), conn, nil, wfErrors.NewError(wfErrors.ErrInvalidMsgFormat, err))
 		return
@@ -119,7 +119,12 @@ func (a *App) handleConnection(ctx context.Context, conn net.Conn) {
 
 	clientAddr, ok := conn.RemoteAddr().(*net.TCPAddr)
 	if !ok {
-		a.handleError(logger.WithCtx(ctx, l, ""), conn, nil, wfErrors.NewError(wfErrors.ErrGeneric, fmt.Errorf("failed to get client addr: %s", clientAddr)))
+		a.handleError(
+			logger.WithCtx(ctx, l, ""),
+			conn,
+			nil,
+			wfErrors.NewError(wfErrors.ErrGeneric, fmt.Errorf("failed to get client addr: %s", clientAddr)),
+		)
 	}
 
 	ip := clientAddr.IP.String()
@@ -134,10 +139,17 @@ func (a *App) handleConnection(ctx context.Context, conn net.Conn) {
 	var respPayload []byte
 	var handleErr *wfErrors.Error
 	switch req.Action {
-	case api.ActionChallenge:
-		respPayload, handleErr = a.handlersService.GenerateChallenge(logger.WithCtx(ctx, tokenLogger, "genChallenge"), token)
-	case api.ActionSolution:
-		respPayload, handleErr = a.handlersService.CheckSolution(logger.WithCtx(ctx, tokenLogger, "checkSolution"), token, req.Payload)
+	case scheme.ActionChallenge:
+		respPayload, handleErr = a.handlersService.GenerateChallenge(
+			logger.WithCtx(ctx, tokenLogger, "genChallenge"),
+			token,
+		)
+	case scheme.ActionSolution:
+		respPayload, handleErr = a.handlersService.CheckSolution(
+			logger.WithCtx(ctx, tokenLogger, "checkSolution"),
+			token,
+			req.Payload,
+		)
 	default:
 		handleErr = wfErrors.NewError(wfErrors.ErrInvalidAction, fmt.Errorf("unknown action: %s", req.Action))
 	}
@@ -195,7 +207,7 @@ func (a *App) rpsUnauthorizedGuard(ip string) *wfErrors.Error {
 // auth gates all calls and returns a token for the given request.
 // Returns error if unauthorized request requires a token but none is provided or if it exceedes
 // rps limit for unauthorized requests.
-func (a *App) auth(ip string, req *api.Request) (token.Token, *wfErrors.Error) {
+func (a *App) auth(ip string, req *scheme.Request) (token.Token, *wfErrors.Error) {
 	a.rpsService.Inc(ip)
 
 	if req.Token != nil && *req.Token != "" {
@@ -203,7 +215,7 @@ func (a *App) auth(ip string, req *api.Request) (token.Token, *wfErrors.Error) {
 		return t, nil
 	}
 
-	if req.Action == api.ActionSolution {
+	if req.Action == scheme.ActionSolution {
 		return token.Token(""), wfErrors.NewError(wfErrors.ErrMissingToken, errors.New("action requires a token"))
 	}
 
@@ -221,7 +233,7 @@ func (a *App) handleError(ctx context.Context, conn net.Conn, t *token.Token, er
 }
 
 func (a *App) successResponse(token token.Token, payload []byte) []byte {
-	resp := api.Response{
+	resp := scheme.Response{
 		Token:   string(token),
 		Payload: payload,
 	}
@@ -238,7 +250,7 @@ func (a *App) errorResponse(token *token.Token, err *wfErrors.Error) []byte {
 
 	errStr := err.Error()
 	codeStr := err.Code().String()
-	resp := api.Response{
+	resp := scheme.Response{
 		Token:     t,
 		Error:     &errStr,
 		ErrorCode: &codeStr,

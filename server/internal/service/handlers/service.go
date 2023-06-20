@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"blitzarx1/wisdom-fort/pkg/api"
+	"blitzarx1/wisdom-fort/pkg/scheme"
 	wfErrors "blitzarx1/wisdom-fort/server/internal/errors"
 	"blitzarx1/wisdom-fort/server/internal/logger"
 	"blitzarx1/wisdom-fort/server/internal/service/challenges"
@@ -57,7 +57,7 @@ func (s *Service) GenerateChallenge(ctx context.Context, t token.Token) ([]byte,
 		diff = s.challengesService.ComputeChallenge(t)
 	}
 
-	payload := api.PayloadResponseChallenge{Target: diff}
+	payload := scheme.PayloadResponseChallenge{Target: diff}
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return nil, wfErrors.NewError(wfErrors.ErrGeneric, err)
@@ -75,7 +75,7 @@ func (s *Service) CheckSolution(ctx context.Context, t token.Token, payload []by
 		return nil, wfErrors.NewError(wfErrors.ErrInvalidPayloadFormat, errors.New("empty payload"))
 	}
 
-	var reqPayload api.PayloadRequestSolution
+	var reqPayload scheme.PayloadRequestSolution
 	err := json.Unmarshal(payload, &reqPayload)
 	if err != nil {
 		return nil, wfErrors.NewError(wfErrors.ErrInvalidPayloadFormat, err)
@@ -91,7 +91,7 @@ func (s *Service) CheckSolution(ctx context.Context, t token.Token, payload []by
 	}
 
 	quote := s.quotesService.GetRandom()
-	respPayload := api.PayloadResponseSolution{Quote: quote}
+	respPayload := scheme.PayloadResponseSolution{Quote: quote}
 	data, err := json.Marshal(respPayload)
 	if err != nil {
 		return nil, wfErrors.NewError(wfErrors.ErrGeneric, err)

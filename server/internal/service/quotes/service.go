@@ -7,13 +7,13 @@ import (
 	"math/rand"
 	"os"
 
-	"blitzarx1/wisdom-fort/pkg/api"
+	"blitzarx1/wisdom-fort/pkg/scheme"
 	"blitzarx1/wisdom-fort/server/internal/logger"
 )
 
 // Service manages the set of available quotes.
 type Service struct {
-	quotes []api.Quote
+	quotes []scheme.Quote
 }
 
 func New(ctx context.Context, quotesFilePath string) (*Service, error) {
@@ -41,6 +41,6 @@ func New(ctx context.Context, quotesFilePath string) (*Service, error) {
 	return s, nil
 }
 
-func (s *Service) GetRandom() api.Quote {
+func (s *Service) GetRandom() scheme.Quote {
 	return s.quotes[rand.Intn(len(s.quotes))]
 }

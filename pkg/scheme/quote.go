@@ -1,4 +1,4 @@
-package api
+package scheme
 
 type Quote struct {
 	Author string `json:"author"`

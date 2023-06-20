@@ -1,4 +1,4 @@
-package api
+package scheme
 
 type PayloadRequestSolution struct {
 	Solution uint64 `json:"solution"`
