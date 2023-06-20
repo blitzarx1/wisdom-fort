@@ -1,25 +1,32 @@
-## TODO
-
-Server:
-- [ ] Use opts pattern for server configuring ttl for challenges, token limit per ip, port, 
-- [ ] Tests
-
-Client:
-- [ ] Extract client from main
-
 # Wisdom-Fort
-
 Wisdom-Fort is a TCP server that utilizes Proof of Work (PoW) challenges as a shield against DDoS attacks. It serves insightful quotes to clients, but only after they have successfully solved a PoW challenge. This project is designed to balance server-side protection mechanisms with a rewarding client-side experience
 
 ## Design Overview
-
 The system was designed with an emphasis on simplicity, security, and resilience to DDoS attacks. A hash-based Proof of Work (PoW) system is used, which is simple to understand and implement, yet provides a strong protection against spam and flooding attacks. The PoW system generates unique challenges for each client, which prevent replay attacks, and the difficulty level is adjusted based on each client's request rate, enabling the system to handle different levels of demand and server capacity.
 
-The design also includes a unique token assigned to each client upon their first successful PoW solution. This token helps track and limit the number of requests from each client, thus providing additional protection against DDoS attacks.
+The process is split in 2 phases:
+* get unique token and a challenge
+* solve the challenge and get a quote
+
+### Get a Challenge
+This call is used to get a uniqut token and a challenge to solve.
+
+May be considered as a public api enpoint as it is not requieres a token. Thus is not protected by PoW difficulty adjustment from DDoS attacks. The protection used on this phase is traditional rate limiter which limits the number of requests by ip.
+
+### Solve the Challenge and Get a Quote
+This call requires token to be present in the request. The token is obtained in the previous phase.
+
+This phase is protected by PoW difficulty adjustment. The difficulty is adjusted based on the client's request rate. The higher the request rate, the higher the difficulty. This allows the server to handle different levels of demand and server capacity.
+
+## Challenge Description
+The challenge is hash-based PoW algorithm. The task is to find a sha256 hexadecimal string with a specific number of leading zero.
+ 
+Client is given a unique token which needs to be concatenated with any number. The condition for the resulting string is for its sha256 hexadecimal representation to have a specific number of leading zeros.
+
+The number of leading zeros is determined by the difficulty level, which is adjusted based on the client's request rate.
 
 ## Choice of Proof of Work Algorithm
-
-The Proof of Work (PoW) algorithm chosen for Wisdom-Fort is a Hash-based PoW. This selection was driven by several key considerations:
+The Proof of Work (PoW) algorithm chosen for Wisdom-Fort is a hash-based PoW. This selection was driven by several key considerations:
 
 - **Security:** The algorithm's challenge-response mechanism and the requirement for clients to produce a hash with specific properties helps guard against a range of attacks, including DDoS and replay attacks.
 
@@ -34,7 +41,6 @@ The Proof of Work (PoW) algorithm chosen for Wisdom-Fort is a Hash-based PoW. Th
 ## Getting Started
 
 ### Server
-
 To build and run the server, use the provided Dockerfile:
 
 ```sh

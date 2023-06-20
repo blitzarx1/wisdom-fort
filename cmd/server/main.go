@@ -8,9 +8,15 @@ import (
 )
 
 func main() {
-	srv, err := server.New(context.Background())
+	cfg, err := server.NewConfigFromEnv()
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	srv, err := server.New(context.Background(), cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	srv.Run(context.Background())
 }

@@ -10,27 +10,34 @@ import (
 	"blitzarx1/wisdom-fort/server/internal/token"
 )
 
-// TODO: extract to config/opts
-const (
-	difficultyMult uint8 = 1
-	challengeTTL         = 5 * time.Second
-)
-
 // Service tracks challenges for client, validates solutions and computes difficulty.
 // Challenge has a ttl afteer which it expires.
 type Service struct {
 	storageID storage.StorageID
 
+	diffMult uint8
+
 	storageService *storage.Service
 	rpsService     *rps.Service
 }
 
-func New(ctx context.Context, storageService *storage.Service, rpsService *rps.Service) *Service {
+func New(
+	ctx context.Context,
+	diffMult uint8,
+	ttlSeconds uint,
+	storageService *storage.Service,
+	rpsService *rps.Service,
+) *Service {
 	l := logger.MustFromCtx(ctx)
 	l.Println("initializing challenges service")
 
 	return &Service{
-		storageID: storageService.AddStorageWithTTL(logger.WithCtx(ctx, l, "addStorage"), challengeTTL),
+		storageID: storageService.AddStorageWithTTL(
+			logger.WithCtx(ctx, l, "addStorage"),
+			time.Duration(ttlSeconds)*time.Second,
+		),
+
+		diffMult: diffMult,
 
 		storageService: storageService,
 		rpsService:     rpsService,
@@ -40,7 +47,7 @@ func New(ctx context.Context, storageService *storage.Service, rpsService *rps.S
 func (s *Service) ComputeChallenge(t token.Token) uint8 {
 	rps := s.rpsService.Get(t.IP())
 
-	diff := uint8(rps) * difficultyMult
+	diff := uint8(rps) * s.diffMult
 
 	s.storageService.Set(s.storageID, string(t), uint(diff))
 	return diff

@@ -19,23 +19,19 @@ import (
 	"blitzarx1/wisdom-fort/server/internal/token"
 )
 
-const (
-	port = 8080
-
-	quotesFilePath = "server/quotes.json"
-	rpsUnauthLimit = 1
-)
+const quotesFilePath = "server/quotes.json"
 
 type App struct {
+	cfg             *Config
 	handlersService *handlers.Service
 	rpsService      *rps.Service
 }
 
-func New(ctx context.Context) (*App, error) {
+func New(ctx context.Context, cfg *Config) (*App, error) {
 	l := logger.New(nil, "server")
 	l.Println("initializing server")
 
-	a := &App{}
+	a := &App{cfg: cfg}
 	if err := a.initServices(logger.WithCtx(ctx, l, "initServices")); err != nil {
 		return nil, err
 	}
@@ -46,7 +42,7 @@ func New(ctx context.Context) (*App, error) {
 func (a *App) Run(ctx context.Context) error {
 	l := logger.New(nil, "serverRun")
 	l.Println("running server")
-	portStr := fmt.Sprintf(":%d", port)
+	portStr := fmt.Sprintf(":%d", a.cfg.Port)
 	ln, err := net.Listen("tcp", portStr)
 	if err != nil {
 		a.logError(logger.WithCtx(ctx, l, ""), err)
@@ -69,7 +65,13 @@ func (a *App) initServices(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	challengesService := challenges.New(logger.WithCtx(ctx, l, "challenges"), storageService, a.rpsService)
+	challengesService := challenges.New(
+		logger.WithCtx(ctx, l, "challenges"),
+		a.cfg.DiffMult,
+		a.cfg.ChallengeTTLSeconds,
+		storageService,
+		a.rpsService,
+	)
 	a.handlersService, err = handlers.New(
 		logger.WithCtx(ctx, l, "service"),
 		a.rpsService,
@@ -86,7 +88,7 @@ func (a *App) initServices(ctx context.Context) error {
 
 func (a *App) serve(ctx context.Context, ln net.Listener) error {
 	l := logger.MustFromCtx(ctx)
-	l.Println("server is listening on ", port)
+	l.Println("server is listening on ", a.cfg.Port)
 
 	for {
 		conn, err := ln.Accept()
@@ -183,7 +185,7 @@ func (a *App) write(ctx context.Context, conn net.Conn, data []byte) error {
 
 func (a *App) rpsUnauthorizedGuard(ip string) *wfErrors.Error {
 	rps := a.rpsService.Get(ip)
-	if rps > rpsUnauthLimit {
+	if rps > a.cfg.RPSLimitUnauth {
 		return wfErrors.NewError(wfErrors.ErrTooManyRequests, errors.New("too many requests"))
 	}
 
