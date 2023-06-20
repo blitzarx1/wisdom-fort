@@ -25,6 +25,9 @@ Client is given a unique token which needs to be concatenated with any number. T
 
 The number of leading zeros is determined by the difficulty level, which is adjusted based on the client's request rate.
 
+## Quotes
+Once the PoW solution is verified, the server responds with a random wisdom quote.
+
 ## Choice of Proof of Work Algorithm
 The Proof of Work (PoW) algorithm chosen for Wisdom-Fort is a hash-based PoW. This selection was driven by several key considerations:
 
@@ -38,9 +41,10 @@ The Proof of Work (PoW) algorithm chosen for Wisdom-Fort is a hash-based PoW. Th
 
 - **Proven Effectiveness:** Hash-based PoW systems have been successfully used in a number of high-profile applications, such as in blockchain technology and cryptocurrency networks. This serves as a testament to their effectiveness in protecting systems against potential abuse.
 
-## Getting Started
+## Run
 
 ### Server
+
 To build and run the server, use the provided Dockerfile:
 
 ```sh
@@ -60,10 +64,6 @@ docker run wow-client
 ```
 
 By default, the client will try to connect to a server running on `localhost:8080`. This can be configured by setting the `SERVER_HOST` and `SERVER_PORT` environment variables.
-
-## Quotes
-
-Once the PoW solution is verified and the client's request rate is checked, the server responds with a random wisdom quote.
 
 ## Testing
 
