@@ -103,6 +103,13 @@ func (a *App) serve(ctx context.Context, ln net.Listener) error {
 	l.Println("server is listening on ", a.cfg.Port)
 
 	for {
+		select {
+		case <-ctx.Done():
+			l.Println("server is shutting down")
+			return nil
+		default:
+		}
+
 		conn, err := ln.Accept()
 		if err != nil {
 			return err

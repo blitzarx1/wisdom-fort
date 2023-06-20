@@ -60,12 +60,24 @@ docker run -p 8080:8080 wf-server
 
 This will start the server id a docker container listening on port 8080 and with the default configuration taken from `.env` file.
 
-## Testing
+### Client
+
+### Demo
+Demo demonstrate the client-server interaction.
+
+It will demonstrate how the client-server interaction is organised and how rps limiting and difficulty adjustment works.
+
+Demo is supposed to be run with default server configuration. Please check stdout for the output.
+
+#### Run
+```sh
+go run cmd/demo/main.go
+```
+
+### Tests
 
 To run tests, use the go test command:
 
 ```sh
 go test ./...
 ```
-
-### Client
