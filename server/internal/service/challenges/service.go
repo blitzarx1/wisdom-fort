@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"blitzarx1/wisdom-fort/pkg/logger"
+	"blitzarx1/wisdom-fort/server/internal/hash"
 	"blitzarx1/wisdom-fort/server/internal/service/rps"
 	"blitzarx1/wisdom-fort/server/internal/service/storage"
 	"blitzarx1/wisdom-fort/server/internal/token"
@@ -74,10 +75,10 @@ func (s *Service) CheckSolution(t token.Token, sol uint64) (bool, error) {
 	}
 
 	// generate hash of solution with the token
-	hash := generateHash(string(t), sol)
+	h := hash.GenerateHash(string(t), sol)
 
 	// check if the hash meets the difficulty requirement
-	isCorrect := checkHash(hash, uint8(diff))
+	isCorrect := hash.CheckHash(h, uint8(diff))
 
 	if isCorrect {
 		s.storageService.Delete(s.storageID, string(t))

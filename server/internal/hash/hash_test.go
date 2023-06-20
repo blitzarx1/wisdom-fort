@@ -1,4 +1,4 @@
-package challenges
+package hash
 
 import (
 	"testing"
@@ -34,7 +34,7 @@ func Test_generateHash(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := generateHash(tt.args.token, tt.args.sol); got != tt.want {
+			if got := GenerateHash(tt.args.token, tt.args.sol); got != tt.want {
 				t.Errorf("generateHash() = %v, want %v", got, tt.want)
 			}
 		})
@@ -79,7 +79,7 @@ func Test_checkHash(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := checkHash(tt.args.hash, tt.args.diff); got != tt.want {
+			if got := CheckHash(tt.args.hash, tt.args.diff); got != tt.want {
 				t.Errorf("checkHash() = %v, want %v", got, tt.want)
 			}
 		})

@@ -1,4 +1,4 @@
-package challenges
+package hash
 
 import (
 	"crypto/sha256"
@@ -8,8 +8,8 @@ import (
 
 const tokenZero = '0'
 
-// generateHash returns the SHA-256 hash of the combination of token and solution as a hexadecimal string.
-func generateHash(token string, sol uint64) string {
+// GenerateHash returns the SHA-256 hash of the combination of token and solution as a hexadecimal string.
+func GenerateHash(token string, sol uint64) string {
 	// convert solution to string
 	solStr := strconv.FormatUint(uint64(sol), 10)
 
@@ -25,8 +25,8 @@ func generateHash(token string, sol uint64) string {
 	return hex.EncodeToString(hash)
 }
 
-// checkHash returns whether the given hash meets the difficulty requirement
-func checkHash(hash string, diff uint8) bool {
+// CheckHash returns whether the given hash meets the difficulty requirement
+func CheckHash(hash string, diff uint8) bool {
 	// count the number of leading zeroes
 	var leadingZeroes int
 	for _, rune := range hash {

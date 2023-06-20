@@ -61,21 +61,30 @@ docker run -p 8080:8080 wf-server
 This will start the server id a docker container listening on port 8080 and with the default configuration taken from `.env` file.
 
 ### Client
+Client is a package which provides possible realization of the client for wisdom-fort pow server.
 
-### Demo
-Demo demonstrate the client-server interaction.
+#### Demo
+Demo demonstrate the client-server interaction. 
 
 It will demonstrate how the client-server interaction is organised and how rps limiting and difficulty adjustment works.
 
-Demo is supposed to be run with default server configuration. Please check stdout for the output.
+To run the demo:
+* Start demo after the server is running locally. 
+* Demo is supposed to be run with default server configuration. 
+* Please check stdout for the output.
 
-#### Run
 ```sh
-go run cmd/demo/main.go
+go run client/cmd/demo.go
+```
+
+You can also run demo from docker container:
+
+```sh
+docker build -t wf-client -f Dockerfile.client .
+docker run --network=host wf-client
 ```
 
 ### Tests
-
 To run tests, use the go test command:
 
 ```sh

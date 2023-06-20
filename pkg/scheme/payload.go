@@ -1,7 +1,7 @@
 package scheme
 
 type PayloadRequestSolution struct {
-	Solution uint64 `json:"solution"`
+	Solution uint `json:"solution"`
 }
 
 type PayloadResponseSolution struct {
