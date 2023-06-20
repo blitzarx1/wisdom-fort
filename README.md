@@ -41,10 +41,16 @@ The Proof of Work (PoW) algorithm chosen for Wisdom-Fort is a hash-based PoW. Th
 
 - **Proven Effectiveness:** Hash-based PoW systems have been successfully used in a number of high-profile applications, such as in blockchain technology and cryptocurrency networks. This serves as a testament to their effectiveness in protecting systems against potential abuse.
 
-## Run
+## Getting Started
 
 ### Server
+Server has a set of configuration parameters which can be set via environment variables. The default values are set in `.env` file. The following parameters are available:
+* `PORT` - Port to listen on;
+* `RPS_LIMIT_UNAUTH` - RPSLimitUnauth is ip rps limit for requests without valid token;
+* `DIFF_MULT` - DiffMult is difficulty multiplier for challenges. If set to 1 the challenges trivial.Difficulty is equal to the client IPs RPS. 0 makes challenges trivial. Recommended value is 1.
+* `CHALLENGE_TTL_SECONDS` - ChallengeTTLSeconds is expiration time for challenge in seconds. When the time is passed the challenge is considered invalid and the client needs to request a new one.
 
+#### Run
 To build and run the server, use the provided Dockerfile:
 
 ```sh
@@ -52,7 +58,7 @@ docker build -t wf-server -f Dockerfile.server .
 docker run -p 8080:8080 wf-server
 ```
 
-This will start the server id a docker container listening on port 8080 and with default configuration taken from `.env` file.
+This will start the server id a docker container listening on port 8080 and with the default configuration taken from `.env` file.
 
 ## Testing
 
@@ -61,3 +67,5 @@ To run tests, use the go test command:
 ```sh
 go test ./...
 ```
+
+### Client

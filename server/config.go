@@ -15,10 +15,12 @@ type Config struct {
 
 	// DiffMult is difficulty multiplier for challenges. If set to 1 the
 	// difficulty is equal to the client IPs RPS. 0 makes
-	// challenges trivial. Recommened value is 1.
+	// challenges trivial. Recommended value is 1.
 	DiffMult uint8 `env:"DIFF_MULT"`
 
 	// ChallengeTTLSeconds is expiration time for challenge in seconds.
+	// When the time is passed the challenge is considered invalid and
+	// the client needs to request a new one.
 	ChallengeTTLSeconds uint `env:"CHALLENGE_TTL_SECONDS"`
 }
 

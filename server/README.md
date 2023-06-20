@@ -6,5 +6,5 @@ This package contains the server-side code for the project.
 ### Locally with go run
 Run the following command from the project root:
 ```sh
-go run cmd/server/main.go
+go run server/cmd/main.go
 ```
