@@ -19,7 +19,10 @@ import (
 	"blitzarx1/wisdom-fort/server/internal/token"
 )
 
-const quotesFilePath = "server/quotes.json"
+const (
+	protocol       = "tcp"
+	quotesFilePath = "server/quotes.json"
+)
 
 type App struct {
 	cfg             *Config
@@ -52,7 +55,7 @@ func (a *App) Run(ctx context.Context) error {
 	l.Println("running server")
 
 	portStr := fmt.Sprintf(":%d", a.cfg.Port)
-	ln, err := net.Listen("tcp", portStr)
+	ln, err := net.Listen(protocol, portStr)
 	if err != nil {
 		a.logError(logger.WithCtx(ctx, l, ""), err)
 		return err
@@ -116,19 +119,19 @@ func (a *App) handleConnection(ctx context.Context, conn net.Conn) {
 
 	data, err := a.read(logger.WithCtx(ctx, l, "read"), conn)
 	if err != nil {
-		a.handleError(logger.WithCtx(ctx, l, ""), conn, nil, wfErrors.NewError(wfErrors.ErrGeneric, err))
+		a.handleRequestError(logger.WithCtx(ctx, l, ""), conn, nil, wfErrors.NewError(wfErrors.ErrGeneric, err))
 		return
 	}
 
 	var req scheme.Request
 	if err := json.Unmarshal(data, &req); err != nil {
-		a.handleError(logger.WithCtx(ctx, l, ""), conn, nil, wfErrors.NewError(wfErrors.ErrInvalidMsgFormat, err))
+		a.handleRequestError(logger.WithCtx(ctx, l, ""), conn, nil, wfErrors.NewError(wfErrors.ErrInvalidMsgFormat, err))
 		return
 	}
 
 	clientAddr, ok := conn.RemoteAddr().(*net.TCPAddr)
 	if !ok {
-		a.handleError(
+		a.handleRequestError(
 			logger.WithCtx(ctx, l, ""),
 			conn,
 			nil,
@@ -139,7 +142,7 @@ func (a *App) handleConnection(ctx context.Context, conn net.Conn) {
 	ip := clientAddr.IP.String()
 	token, authErr := a.auth(ip, &req)
 	if authErr != nil {
-		a.handleError(logger.WithCtx(ctx, l, ""), conn, nil, authErr)
+		a.handleRequestError(logger.WithCtx(ctx, l, ""), conn, nil, authErr)
 		return
 	}
 
@@ -163,7 +166,7 @@ func (a *App) handleConnection(ctx context.Context, conn net.Conn) {
 		handleErr = wfErrors.NewError(wfErrors.ErrInvalidAction, fmt.Errorf("unknown action: %s", req.Action))
 	}
 	if handleErr != nil {
-		a.handleError(logger.WithCtx(ctx, tokenLogger, ""), conn, &token, handleErr)
+		a.handleRequestError(logger.WithCtx(ctx, tokenLogger, ""), conn, &token, handleErr)
 		return
 	}
 
@@ -235,7 +238,7 @@ func (a *App) auth(ip string, req *scheme.Request) (token.Token, *wfErrors.Error
 	return a.handlersService.GenerateToken(ip), nil
 }
 
-func (a *App) handleError(ctx context.Context, conn net.Conn, t *token.Token, err *wfErrors.Error) {
+func (a *App) handleRequestError(ctx context.Context, conn net.Conn, t *token.Token, err *wfErrors.Error) {
 	l := logger.MustFromCtx(ctx)
 	a.logError(logger.WithCtx(ctx, l, ""), err)
 	a.write(logger.WithCtx(ctx, l, "write"), conn, a.errorResponse(t, err))
