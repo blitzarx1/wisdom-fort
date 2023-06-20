@@ -48,22 +48,11 @@ The Proof of Work (PoW) algorithm chosen for Wisdom-Fort is a hash-based PoW. Th
 To build and run the server, use the provided Dockerfile:
 
 ```sh
-docker build -t wow-server -f Dockerfile.server .
-docker run -p 8080:8080 wow-server
+docker build -t wf-server -f Dockerfile.server .
+docker run -p 8080:8080 wf-server
 ```
 
-This will start the server on port 8080.
-
-### Client
-
-To build and run the client, use the provided Dockerfile:
-
-```sh
-docker build -t wow-client -f Dockerfile.client .
-docker run wow-client
-```
-
-By default, the client will try to connect to a server running on `localhost:8080`. This can be configured by setting the `SERVER_HOST` and `SERVER_PORT` environment variables.
+This will start the server id a docker container listening on port 8080 and with default configuration taken from `.env` file.
 
 ## Testing
 
