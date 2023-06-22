@@ -23,5 +23,7 @@ func main() {
 		l.Fatal(err)
 	}
 
-	srv.Run(logger.WithCtx(ctx, l, "serverRun"))
+	if err := srv.Run(logger.WithCtx(ctx, l, "serverRun")); err != nil {
+		l.Fatal(err)
+	}
 }

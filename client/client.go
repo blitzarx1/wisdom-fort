@@ -131,6 +131,10 @@ func (c *Client) SubmitSolution(ctx context.Context, solution uint, token string
 		return nil, err
 	}
 
+	if solutionResponse.ErrorCode != nil {
+		return nil, fmt.Errorf("error code: `%s`; error msg: %s", *solutionResponse.ErrorCode, *solutionResponse.Error)
+	}
+
 	return &quotePayload.Quote, nil
 }
 

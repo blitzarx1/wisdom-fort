@@ -39,11 +39,7 @@ func New(ctx context.Context, cfg *Config) (*App, error) {
 	l.Println("initializing server")
 
 	a := &App{cfg: cfg}
-	if err := a.initServices(logger.WithCtx(ctx, l, "initServices")); err != nil {
-		return nil, err
-	}
-
-	return a, nil
+	return a, a.initServices(logger.WithCtx(ctx, l, "initServices"))
 }
 
 func (a *App) Run(ctx context.Context) error {

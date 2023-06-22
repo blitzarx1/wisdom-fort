@@ -21,8 +21,8 @@ type ID int
 // due to used storage implementation.
 //
 // It has a dependency on the keyvalStore interface. This allows us to easily
-// switch the storage provider without having to change the service. It can be usefull
-// when we need out service to scale and we need to use a storage like Redis.
+// switch the storage provider without having to change the service. It can be useful
+// when we need our service to scale and we need to use a storage like Redis.
 type Service struct {
 	stores []keyvalStore
 
@@ -50,6 +50,7 @@ func New(ctx context.Context) *Service {
 			case <-ticker.C:
 				for t, e := range s.expiration {
 					if time.Now().After(t) {
+						l.Println("deleting expired key", e.key)
 						s.Delete(e.id, e.key)
 						delete(s.expiration, t)
 					}
