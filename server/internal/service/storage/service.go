@@ -20,24 +20,34 @@ type ID int
 // to be used during initialization. It is safe to use other methods concurrently
 // due to used storage implementation.
 //
-// It has a dependency on the keyvalStore interface. This allows us to easily
+// It has a dependency on the keyValStore interface. This allows us to easily
 // switch the storage provider without having to change the service. It can be useful
 // when we need our service to scale and we need to use a storage like Redis.
 type Service struct {
-	stores []keyvalStore
+	stores []keyValStore
+
+	storageProvider func() keyValStore
 
 	withTTL    map[ID]time.Duration
 	expiration map[time.Time]entry
 }
 
 func New(ctx context.Context) *Service {
+	return build(ctx, func() keyValStore {
+		return newStorage()
+	})
+}
+
+// build is a helper function to initialize the service.
+func build(ctx context.Context, storageProvider func() keyValStore) *Service {
 	l := logger.MustFromCtx(ctx)
 	l.Println("initializing storage service")
 
 	s := &Service{
-		stores:     make([]keyvalStore, 0),
-		withTTL:    make(map[ID]time.Duration),
-		expiration: make(map[time.Time]entry),
+		stores:          make([]keyValStore, 0),
+		withTTL:         make(map[ID]time.Duration),
+		expiration:      make(map[time.Time]entry),
+		storageProvider: storageProvider,
 	}
 
 	// clear expired keys with check interval of 1 second.
@@ -58,7 +68,6 @@ func New(ctx context.Context) *Service {
 			}
 		}
 	}()
-
 	return s
 }
 
@@ -94,6 +103,6 @@ func (s *Service) Delete(id ID, key string) {
 }
 
 func (s *Service) addStore() ID {
-	s.stores = append(s.stores, newStorage())
+	s.stores = append(s.stores, s.storageProvider())
 	return ID(len(s.stores) - 1)
 }

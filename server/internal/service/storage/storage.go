@@ -5,6 +5,7 @@ import (
 	"sync"
 )
 
+// storage is an in-memory implementation of the keyValStore interface.
 type storage struct {
 	lock sync.RWMutex
 	data map[string]uint
