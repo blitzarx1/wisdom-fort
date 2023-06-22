@@ -12,9 +12,9 @@ import (
 )
 
 // Service tracks challenges for client, validates solutions and computes difficulty.
-// Challenge has a ttl afteer which it expires.
+// Challenge has a ttl after which it expires.
 type Service struct {
-	storageID storage.StorageID
+	storageID storage.ID
 
 	diffMult uint8
 
@@ -46,9 +46,9 @@ func New(
 }
 
 func (s *Service) ComputeChallenge(t token.Token) uint8 {
-	rps := s.rpsService.Get(t.IP())
+	clientRPS := s.rpsService.Get(t.IP())
 
-	diff := uint8(rps) * s.diffMult
+	diff := uint8(clientRPS) * s.diffMult
 
 	s.storageService.Set(s.storageID, string(t), uint(diff))
 	return diff

@@ -84,13 +84,7 @@ func (a *App) initServices(ctx context.Context) error {
 		storageService,
 		a.rpsService,
 	)
-	a.handlersService, err = handlers.New(
-		logger.WithCtx(ctx, l, "service"),
-		a.rpsService,
-		storageService,
-		quotesService,
-		challengesService,
-	)
+	a.handlersService, err = handlers.New(logger.WithCtx(ctx, l, "service"), a.rpsService, quotesService, challengesService)
 	if err != nil {
 		return err
 	}
@@ -147,13 +141,13 @@ func (a *App) handleConnection(ctx context.Context, conn net.Conn) {
 	}
 
 	ip := clientAddr.IP.String()
-	token, authErr := a.auth(ip, &req)
+	tk, authErr := a.auth(ip, &req)
 	if authErr != nil {
 		a.handleRequestError(logger.WithCtx(ctx, l, ""), conn, nil, authErr)
 		return
 	}
 
-	tokenLogger := logger.New(l, string(token))
+	tokenLogger := logger.New(l, string(tk))
 
 	var respPayload []byte
 	var handleErr *wfErrors.Error
@@ -161,23 +155,23 @@ func (a *App) handleConnection(ctx context.Context, conn net.Conn) {
 	case scheme.ActionChallenge:
 		respPayload, handleErr = a.handlersService.GenerateChallenge(
 			logger.WithCtx(ctx, tokenLogger, "genChallenge"),
-			token,
+			tk,
 		)
 	case scheme.ActionSolution:
 		respPayload, handleErr = a.handlersService.CheckSolution(
 			logger.WithCtx(ctx, tokenLogger, "checkSolution"),
-			token,
+			tk,
 			req.Payload,
 		)
 	default:
 		handleErr = wfErrors.NewError(wfErrors.ErrInvalidAction, fmt.Errorf("unknown action: %s", req.Action))
 	}
 	if handleErr != nil {
-		a.handleRequestError(logger.WithCtx(ctx, tokenLogger, ""), conn, &token, handleErr)
+		a.handleRequestError(logger.WithCtx(ctx, tokenLogger, ""), conn, &tk, handleErr)
 		return
 	}
 
-	if err := a.write(logger.WithCtx(ctx, l, "write"), conn, a.successResponse(token, respPayload)); err != nil {
+	if err := a.write(logger.WithCtx(ctx, l, "write"), conn, a.successResponse(tk, respPayload)); err != nil {
 		a.logError(logger.WithCtx(ctx, tokenLogger, ""), err)
 		return
 	}
@@ -215,8 +209,8 @@ func (a *App) write(ctx context.Context, conn net.Conn, data []byte) error {
 }
 
 func (a *App) rpsUnauthorizedGuard(ip string) *wfErrors.Error {
-	rps := a.rpsService.Get(ip)
-	if rps > a.cfg.RPSLimitUnauth {
+	currRPS := a.rpsService.Get(ip)
+	if currRPS > a.cfg.RPSLimitUnauth {
 		return wfErrors.NewError(wfErrors.ErrTooManyRequests, errors.New("too many requests"))
 	}
 
@@ -224,7 +218,7 @@ func (a *App) rpsUnauthorizedGuard(ip string) *wfErrors.Error {
 }
 
 // auth gates all calls and returns a token for the given request.
-// Returns error if unauthorized request requires a token but none is provided or if it exceedes
+// Returns error if unauthorized request requires a token but none is provided or if it exceeds
 // rps limit for unauthorized requests.
 func (a *App) auth(ip string, req *scheme.Request) (token.Token, *wfErrors.Error) {
 	a.rpsService.Inc(ip)
@@ -235,11 +229,11 @@ func (a *App) auth(ip string, req *scheme.Request) (token.Token, *wfErrors.Error
 	}
 
 	if req.Action == scheme.ActionSolution {
-		return token.Token(""), wfErrors.NewError(wfErrors.ErrMissingToken, errors.New("action requires a token"))
+		return "", wfErrors.NewError(wfErrors.ErrMissingToken, errors.New("action requires a token"))
 	}
 
 	if err := a.rpsUnauthorizedGuard(ip); err != nil {
-		return token.Token(""), err
+		return "", err
 	}
 
 	return a.handlersService.GenerateToken(ip), nil
@@ -248,7 +242,7 @@ func (a *App) auth(ip string, req *scheme.Request) (token.Token, *wfErrors.Error
 func (a *App) handleRequestError(ctx context.Context, conn net.Conn, t *token.Token, err *wfErrors.Error) {
 	l := logger.MustFromCtx(ctx)
 	a.logError(logger.WithCtx(ctx, l, ""), err)
-	a.write(logger.WithCtx(ctx, l, "write"), conn, a.errorResponse(t, err))
+	_ = a.write(logger.WithCtx(ctx, l, "write"), conn, a.errorResponse(t, err))
 }
 
 func (a *App) successResponse(token token.Token, payload []byte) []byte {

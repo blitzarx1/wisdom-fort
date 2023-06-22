@@ -10,7 +10,7 @@ import (
 
 // Service tracks rps per ip.
 type Service struct {
-	storageID storage.StorageID
+	storageID storage.ID
 	storage   *storage.Service
 }
 

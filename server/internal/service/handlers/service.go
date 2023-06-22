@@ -12,7 +12,6 @@ import (
 	"blitzarx1/wisdom-fort/server/internal/service/challenges"
 	"blitzarx1/wisdom-fort/server/internal/service/quotes"
 	"blitzarx1/wisdom-fort/server/internal/service/rps"
-	"blitzarx1/wisdom-fort/server/internal/service/storage"
 	"blitzarx1/wisdom-fort/server/internal/token"
 )
 
@@ -25,13 +24,7 @@ type Service struct {
 	challengesService *challenges.Service
 }
 
-func New(
-	ctx context.Context,
-	rpsService *rps.Service,
-	storageService *storage.Service,
-	quotesService *quotes.Service,
-	challengesService *challenges.Service,
-) (*Service, error) {
+func New(ctx context.Context, rpsService *rps.Service, quotesService *quotes.Service, challengesService *challenges.Service) (*Service, error) {
 	logger.MustFromCtx(ctx).Println("initializing service")
 
 	return &Service{

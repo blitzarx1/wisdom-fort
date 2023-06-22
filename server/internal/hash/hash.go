@@ -11,10 +11,10 @@ const tokenZero = '0'
 // GenerateHash returns the SHA-256 hash of the combination of token and solution as a hexadecimal string.
 func GenerateHash(token string, sol uint64) string {
 	// convert solution to string
-	solStr := strconv.FormatUint(uint64(sol), 10)
+	solStr := strconv.FormatUint(sol, 10)
 
 	// combine token and solution into a single string
-	data := string(token) + solStr
+	data := token + solStr
 
 	// generate SHA-256 hash
 	hasher := sha256.New()
@@ -29,8 +29,8 @@ func GenerateHash(token string, sol uint64) string {
 func CheckHash(hash string, diff uint8) bool {
 	// count the number of leading zeroes
 	var leadingZeroes int
-	for _, rune := range hash {
-		if rune != tokenZero {
+	for _, r := range hash {
+		if r != tokenZero {
 			break
 		}
 

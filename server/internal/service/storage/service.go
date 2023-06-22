@@ -8,11 +8,11 @@ import (
 )
 
 type entry struct {
-	id  StorageID
+	id  ID
 	key string
 }
 
-type StorageID int
+type ID int
 
 // Service manages multiple key-value stores.
 //
@@ -26,7 +26,7 @@ type StorageID int
 type Service struct {
 	stores []keyvalStore
 
-	withTTL    map[StorageID]time.Duration
+	withTTL    map[ID]time.Duration
 	expiration map[time.Time]entry
 }
 
@@ -36,7 +36,7 @@ func New(ctx context.Context) *Service {
 
 	s := &Service{
 		stores:     make([]keyvalStore, 0),
-		withTTL:    make(map[StorageID]time.Duration),
+		withTTL:    make(map[ID]time.Duration),
 		expiration: make(map[time.Time]entry),
 	}
 
@@ -61,7 +61,7 @@ func New(ctx context.Context) *Service {
 	return s
 }
 
-func (s *Service) AddStorageWithTTL(ctx context.Context, ttl time.Duration) StorageID {
+func (s *Service) AddStorageWithTTL(ctx context.Context, ttl time.Duration) ID {
 	logger.MustFromCtx(ctx).Println("adding new storage with ttl")
 
 	id := s.addStore()
@@ -70,29 +70,29 @@ func (s *Service) AddStorageWithTTL(ctx context.Context, ttl time.Duration) Stor
 	return id
 }
 
-func (s *Service) Set(id StorageID, key string, value uint) {
+func (s *Service) Set(id ID, key string, value uint) {
 	if ttl, ok := s.withTTL[id]; ok {
 		s.expiration[time.Now().Add(ttl)] = entry{id: id, key: key}
 	}
 	s.stores[id].Set(key, value)
 }
 
-func (s *Service) Increment(id StorageID, key string) {
+func (s *Service) Increment(id ID, key string) {
 	if ttl, ok := s.withTTL[id]; ok {
 		s.expiration[time.Now().Add(ttl)] = entry{id: id, key: key}
 	}
 	s.stores[id].Increment(key)
 }
 
-func (s *Service) Get(id StorageID, key string) (uint, error) {
+func (s *Service) Get(id ID, key string) (uint, error) {
 	return s.stores[id].Get(key)
 }
 
-func (s *Service) Delete(id StorageID, key string) {
+func (s *Service) Delete(id ID, key string) {
 	s.stores[id].Delete(key)
 }
 
-func (s *Service) addStore() StorageID {
+func (s *Service) addStore() ID {
 	s.stores = append(s.stores, newStorage())
-	return StorageID(len(s.stores) - 1)
+	return ID(len(s.stores) - 1)
 }
