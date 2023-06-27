@@ -84,7 +84,7 @@ docker build -t wf-client -f Dockerfile.client .
 docker run --network=host wf-client
 ```
 
-#### Describing demo results
+#### Understanding demo results
 Demo will use client to send requests solving challenges and getting quoutes. Client will reach 7 rps loading server; default server config is setting difficulty equal to rps, that is why client will get challenge with `difficulty=7`. Most likely it will not be able to find the soulution before challenge ttl expires (5 seconds in default config) - client gets error `ErrInvalidSolution` because task has already been deleted and the solution is sent for the not existing task. 
 
 If you want to see how client solves final solution before ttl expires you can set the `CHALLENGE_TTL_SECONDS` evironment variable to 120 seconds when starting server. It should be enough. So final command to start the sserver for demo to be successfull is 
